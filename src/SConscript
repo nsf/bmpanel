@@ -1,0 +1,11 @@
+sources = [
+	'common.c',
+	'logger.c',
+	'theme.c',
+	'render.c',
+	'bmpanel.c']
+
+
+Import('env')
+sources_objs = env.Object(sources)
+Return('sources_objs')
