@@ -157,6 +157,10 @@ void theme_remove_element(struct theme* t, char e)
 	}
 }
 
+/**************************************************************************
+  free helpers
+**************************************************************************/
+
 static void free_imlib_font(Imlib_Font font)
 {
 	imlib_context_set_font(font);
@@ -168,6 +172,10 @@ static void free_imlib_image(Imlib_Image img)
 	imlib_context_set_image(img);
 	imlib_free_image();
 }
+
+/**************************************************************************
+  string to enum converters
+**************************************************************************/
 
 static uint figure_out_placement(const char *str)
 {
@@ -190,6 +198,10 @@ static uint figure_out_align(const char *str)
 	}
 	return 0;
 }
+
+/**************************************************************************
+  evil slow parser (TODO: rewrite with hash table?)
+**************************************************************************/
 
 static int parse_key_value(const char *key, const char *value, struct theme *t)
 {
@@ -364,12 +376,6 @@ static int parse_line(char *line, struct theme *t)
 	return parse_key_value(key, value, t);
 }
 
-static void calculate_values(struct theme *t)
-{
-	imlib_context_set_image(t->tile_img);
-	t->height = imlib_image_get_height();
-}
-
 static int load_and_parse_theme(struct theme *t)
 {
 	char buf[4096];
@@ -395,6 +401,12 @@ static int load_and_parse_theme(struct theme *t)
 
 	fclose(f);
 	return 1;
+}
+
+static void calculate_values(struct theme *t)
+{
+	imlib_context_set_image(t->tile_img);
+	t->height = imlib_image_get_height();
 }
 
 static uchar hex_to_dec(uchar c)

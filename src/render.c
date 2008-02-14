@@ -9,6 +9,10 @@
 #include "logger.h"
 #include "render.h"
 
+/**************************************************************************
+  GLOBALS
+**************************************************************************/
+
 /* backbuffer dimensions */
 static uint bbwidth;
 static uint bbheight;
@@ -29,6 +33,10 @@ static int taskbar_pos = 0;
 static int taskbar_width = 0;
 static int tray_pos = 0;
 static int tray_width = 0;
+
+/**************************************************************************
+  misc helpers
+**************************************************************************/
 
 static int get_image_width(Imlib_Image img)
 {
@@ -141,6 +149,36 @@ static void get_text_dimensions(Imlib_Font font, const char *text, int *w, int *
 	imlib_get_text_size(text, w, h);
 }
 
+static void draw_text(Imlib_Font font, uint align, int ox, int width, 
+		int offx, int offy, const char *text, struct color *c)
+{
+	imlib_context_set_image(bb);
+	imlib_context_set_font(font);
+	imlib_context_set_color(c->r, c->g, c->b, 255);
+	int texth, textw, oy;
+	imlib_get_text_size(text, &textw, &texth);
+	oy = (theme->height - texth) / 2;
+	switch (align) {
+	case TALIGN_LEFT:
+		break;
+	case TALIGN_CENTER:
+		ox += (width - textw) / 2;
+		break;
+	case TALIGN_RIGHT:
+		ox = width - textw;
+		break;
+	}
+
+	ox += offx;
+	oy += offy;
+	
+	imlib_text_draw(ox, oy, text);
+}
+
+/**************************************************************************
+  systray functions
+**************************************************************************/
+
 static int get_tray_width(struct tray *trayicons)
 {
 	int count = 0;
@@ -175,6 +213,10 @@ static int update_tray_positions(int ox, struct tray *trayicons)
 	return tray_width;
 }
 
+/**************************************************************************
+  clock functions
+**************************************************************************/
+
 static int update_clock_positions(int ox)
 {
 	clock_pos = ox;
@@ -199,6 +241,33 @@ static int get_clock_width()
 {
 	return update_clock_positions(0);
 }
+
+void render_clock()
+{
+	tile_image(theme->tile_img, clock_pos, clock_width);
+	int ox = clock_pos;
+	draw_clock_background(ox, clock_width);
+	int gap = theme->clock.space_gap;
+	int lgap = get_image_width(theme->clock.left_img);
+	int rgap = get_image_width(theme->clock.right_img);
+	int x = ox + gap + lgap;
+	int w = clock_width - ((gap * 2) + lgap + rgap);
+
+	char buftime[128];
+	time_t current_time;
+	current_time = time(0);
+	strftime(buftime, sizeof(buftime), theme->clock.format, localtime(&current_time));
+
+	imlib_context_set_cliprect(x, 0, w, bbheight);
+	draw_text(theme->clock.font, theme->clock.text_align, x, w,
+			theme->clock.text_offset_x, theme->clock.text_offset_y,
+			buftime, &theme->clock.text_color);
+	imlib_context_set_cliprect(0, 0, bbwidth, bbheight);
+}
+
+/**************************************************************************
+  desktop switcher functions
+**************************************************************************/
 
 static int update_switcher_positions(int ox, struct desktop *desktops)
 {
@@ -242,80 +311,6 @@ static int update_switcher_positions(int ox, struct desktop *desktops)
 static int get_switcher_width(struct desktop *desktops)
 {
 	return update_switcher_positions(0, desktops);
-}
-
-static int update_taskbar_positions(int ox, int width, 
-		struct task *tasks, struct desktop *desktops)
-{
-	taskbar_pos = ox;
-	taskbar_width = width;
-
-	int activedesktop = 0;
-	struct desktop *iter = desktops;
-	while (iter) {
-		if (iter->focused)
-			break;
-		activedesktop++;
-		iter = iter->next;
-	}
-
-	int taskscount = 0;
-	struct task *t = tasks;
-	while (t) {
-		if (t->desktop == activedesktop)
-			taskscount++;
-		t = t->next;
-	}
-	if (!taskscount)
-		return width;
-
-	int taskw = width / taskscount;
-	int sep = get_image_width(theme->taskbar.separator_img);
-	if (sep)
-		taskw -= sep;
-
-	t = tasks;
-	while (t) {
-		if (t->desktop == activedesktop) {
-			t->posx = ox;
-			t->width = taskw;
-			ox += taskw;
-			if (t->next)
-				ox += sep;
-			/* hack, fill empty space in the end of the task bar */
-			if (!t->next || t->next->desktop != activedesktop)
-				t->width += taskbar_pos + sep + width - ox;
-		}
-		t = t->next;
-	}
-
-	return width;
-}
-
-static void draw_text(Imlib_Font font, uint align, int ox, int width, 
-		int offx, int offy, const char *text, struct color *c)
-{
-	imlib_context_set_image(bb);
-	imlib_context_set_font(font);
-	imlib_context_set_color(c->r, c->g, c->b, 255);
-	int texth, textw, oy;
-	imlib_get_text_size(text, &textw, &texth);
-	oy = (theme->height - texth) / 2;
-	switch (align) {
-	case TALIGN_LEFT:
-		break;
-	case TALIGN_CENTER:
-		ox += (width - textw) / 2;
-		break;
-	case TALIGN_RIGHT:
-		ox = width - textw;
-		break;
-	}
-
-	ox += offx;
-	oy += offy;
-	
-	imlib_text_draw(ox, oy, text);
 }
 
 void render_switcher(struct desktop *desktops)
@@ -364,6 +359,58 @@ void render_switcher(struct desktop *desktops)
 	draw_text(theme->switcher.font, theme->switcher.text_align, ox, iter->width,
 			theme->switcher.text_offset_x, theme->switcher.text_offset_y,
 			iter->name, &theme->switcher.text_color[state]);
+}
+
+/**************************************************************************
+  taskbar functions
+**************************************************************************/
+
+static int update_taskbar_positions(int ox, int width, 
+		struct task *tasks, struct desktop *desktops)
+{
+	taskbar_pos = ox;
+	taskbar_width = width;
+
+	int activedesktop = 0;
+	struct desktop *iter = desktops;
+	while (iter) {
+		if (iter->focused)
+			break;
+		activedesktop++;
+		iter = iter->next;
+	}
+
+	int taskscount = 0;
+	struct task *t = tasks;
+	while (t) {
+		if (t->desktop == activedesktop)
+			taskscount++;
+		t = t->next;
+	}
+	if (!taskscount)
+		return width;
+
+	int taskw = width / taskscount;
+	int sep = get_image_width(theme->taskbar.separator_img);
+	if (sep)
+		taskw -= sep;
+
+	t = tasks;
+	while (t) {
+		if (t->desktop == activedesktop) {
+			t->posx = ox;
+			t->width = taskw;
+			ox += taskw;
+			if (t->next)
+				ox += sep;
+			/* hack, fill empty space in the end of the task bar */
+			if (!t->next || t->next->desktop != activedesktop)
+				t->width += taskbar_pos + sep + width - ox;
+		}
+		t = t->next;
+	}
+
+	return width;
 }
 
 void render_taskbar(struct task *tasks, struct desktop *desktops)
@@ -423,28 +470,9 @@ void render_taskbar(struct task *tasks, struct desktop *desktops)
 	}
 }
 
-void render_clock()
-{
-	tile_image(theme->tile_img, clock_pos, clock_width);
-	int ox = clock_pos;
-	draw_clock_background(ox, clock_width);
-	int gap = theme->clock.space_gap;
-	int lgap = get_image_width(theme->clock.left_img);
-	int rgap = get_image_width(theme->clock.right_img);
-	int x = ox + gap + lgap;
-	int w = clock_width - ((gap * 2) + lgap + rgap);
-
-	char buftime[128];
-	time_t current_time;
-	current_time = time(0);
-	strftime(buftime, sizeof(buftime), theme->clock.format, localtime(&current_time));
-
-	imlib_context_set_cliprect(x, 0, w, bbheight);
-	draw_text(theme->clock.font, theme->clock.text_align, x, w,
-			theme->clock.text_offset_x, theme->clock.text_offset_y,
-			buftime, &theme->clock.text_color);
-	imlib_context_set_cliprect(0, 0, bbwidth, bbheight);
-}
+/**************************************************************************
+  general render stuff
+**************************************************************************/
 
 void init_render(struct theme *t, Display *dpy, Drawable drawable)
 {

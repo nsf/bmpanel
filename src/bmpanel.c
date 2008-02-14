@@ -18,6 +18,10 @@
 #include "render.h"
 #include "bmpanel.h"
 
+/**************************************************************************
+  GLOBALS
+**************************************************************************/
+
 #ifndef PREFIX
 #define PREFIX "/usr"
 #endif
@@ -89,6 +93,10 @@ static int commence_switcher_redraw;
 
 static void cleanup();
 
+/**************************************************************************
+  X error handlers
+**************************************************************************/
+
 static int X_error_handler(Display *dpy, XErrorEvent *error)
 {
 	char buf[1024];
@@ -104,42 +112,9 @@ static int X_io_error_handler(Display *dpy)
 	return 0;
 }
 
-static void *get_prop_data(Window win, Atom prop, Atom type, int *items)
-{
-	Atom type_ret;
-	int format_ret;
-	unsigned long items_ret;
-	unsigned long after_ret;
-	uchar *prop_data;
-
-	prop_data = 0;
-
-	XGetWindowProperty(X.display, win, prop, 0, 0x7fffffff, False,
-			type, &type_ret, &format_ret, &items_ret,
-			&after_ret, &prop_data);
-	if (items)
-		*items = items_ret;
-
-	return prop_data;
-}
-
-int get_prop_int(Window win, Atom at)
-{
-	int num = 0;
-	unsigned long *data;
-
-	data = get_prop_data(win, at, XA_CARDINAL, 0);
-	if (data) {
-		num = *data;
-		XFree(data);
-	}
-	return num;
-}
-
-int get_window_desktop(Window win)
-{
-	return get_prop_int(win, X.atoms[XATOM_NET_WM_DESKTOP]);
-}
+/**************************************************************************
+  imlib2 font util
+**************************************************************************/
 
 static void append_font_path_to_imlib()
 {
@@ -151,6 +126,10 @@ static void append_font_path_to_imlib()
 
 	XFreeFontPath(fontpaths);
 }
+
+/**************************************************************************
+  creating panel window
+**************************************************************************/
 
 static Window create_panel_window(uint placement, int h)
 {
@@ -196,6 +175,47 @@ static Window create_panel_window(uint placement, int h)
 	
 	XMapWindow(X.display, win);
 	return win;
+}
+
+/**************************************************************************
+  window properties
+**************************************************************************/
+
+static void *get_prop_data(Window win, Atom prop, Atom type, int *items)
+{
+	Atom type_ret;
+	int format_ret;
+	unsigned long items_ret;
+	unsigned long after_ret;
+	uchar *prop_data;
+
+	prop_data = 0;
+
+	XGetWindowProperty(X.display, win, prop, 0, 0x7fffffff, False,
+			type, &type_ret, &format_ret, &items_ret,
+			&after_ret, &prop_data);
+	if (items)
+		*items = items_ret;
+
+	return prop_data;
+}
+
+static int get_prop_int(Window win, Atom at)
+{
+	int num = 0;
+	unsigned long *data;
+
+	data = get_prop_data(win, at, XA_CARDINAL, 0);
+	if (data) {
+		num = *data;
+		XFree(data);
+	}
+	return num;
+}
+
+static int get_window_desktop(Window win)
+{
+	return get_prop_int(win, X.atoms[XATOM_NET_WM_DESKTOP]);
 }
 
 static int is_window_hidden(Window win)
@@ -297,6 +317,10 @@ static Imlib_Image get_window_icon(Window win)
 	return sizedicon;
 }
 
+/**************************************************************************
+  desktop management
+**************************************************************************/
+
 static int get_active_desktop()
 {
 	return get_prop_int(X.root, X.atoms[XATOM_NET_CURRENT_DESKTOP]);
@@ -370,6 +394,32 @@ static void rebuild_desktops()
 	
 	XFree(names);
 }
+
+static void switch_desktop(int d)
+{
+	XClientMessageEvent e;
+
+	if (d >= get_number_of_desktops())
+		return;
+
+	e.type = ClientMessage;
+	e.window = X.root;
+	e.message_type = X.atoms[XATOM_NET_CURRENT_DESKTOP];
+	e.format = 32;
+	e.data.l[0] = d;
+	e.data.l[1] = 0;
+	e.data.l[2] = 0;
+	e.data.l[3] = 0;
+	e.data.l[4] = 0;
+	
+	XSendEvent(X.display, X.root, False, SubstructureNotifyMask | 
+			SubstructureRedirectMask, (XEvent*)&e);
+}
+
+
+/**************************************************************************
+  task management
+**************************************************************************/
 
 static void free_tasks()
 {
@@ -462,7 +512,7 @@ static struct task *find_task(Window win)
 	return 0;
 }
 
-static void update_clients()
+static void update_tasks()
 {
 	Window *wins, focuswin;
 	int num, i, j, rev;
@@ -501,26 +551,9 @@ nodelete:
 	XFree(wins);
 }
 
-static void switch_desktop(int d)
-{
-	XClientMessageEvent e;
-
-	if (d >= get_number_of_desktops())
-		return;
-
-	e.type = ClientMessage;
-	e.window = X.root;
-	e.message_type = X.atoms[XATOM_NET_CURRENT_DESKTOP];
-	e.format = 32;
-	e.data.l[0] = d;
-	e.data.l[1] = 0;
-	e.data.l[2] = 0;
-	e.data.l[3] = 0;
-	e.data.l[4] = 0;
-	
-	XSendEvent(X.display, X.root, False, SubstructureNotifyMask | 
-			SubstructureRedirectMask, (XEvent*)&e);
-}
+/**************************************************************************
+  systray functions
+**************************************************************************/
 
 static void init_tray()
 {
@@ -634,6 +667,10 @@ static void free_tray_icons()
 	}
 }
 
+/**************************************************************************
+  X message handlers
+**************************************************************************/
+
 static void handle_client_message(XClientMessageEvent *e)
 {
 	if (e->message_type == X.atoms[XATOM_NET_SYSTEM_TRAY_OPCODE] &&
@@ -682,7 +719,7 @@ static void handle_property_notify(Window win, Atom a)
 		/* updates in client list */
 		if (a == X.atoms[XATOM_NET_CLIENT_LIST])
 		{
-			update_clients();
+			update_tasks();
 			if (commence_taskbar_redraw)
 				render_update_panel_positions(&P);
 		}
@@ -803,6 +840,10 @@ static void handle_focusin(Window win)
 	}
 }
 
+/**************************************************************************
+  initialization
+**************************************************************************/
+
 static void initX()
 {
 	/* open connection to X server */
@@ -824,19 +865,6 @@ static void initX()
 	XSelectInput(X.display, X.root, PropertyChangeMask);
 
 	append_font_path_to_imlib();
-}
-
-static void set_panel_bgpix()
-{
-	/* set window bg */
-	Pixmap tile, mask;
-	imlib_context_set_display(X.display);
-	imlib_context_set_visual(X.visual);
-	imlib_context_set_drawable(P.win);
-	imlib_context_set_image(P.theme->tile_img);
-	imlib_render_pixmaps_for_whole_image(&tile, &mask);
-	P.bgpix = tile;
-	XSetWindowBackgroundPixmap(X.display, P.win, P.bgpix);
 }
 
 static void initP(const char *theme)
@@ -863,14 +891,31 @@ static void initP(const char *theme)
 		LOG_ERROR("failed to load theme: %s", theme);
 
 validation:
+	/* validate theme */
 	if (!theme_is_valid(P.theme))
 		LOG_ERROR("invalid theme: %s", theme);
-	P.win = create_panel_window(P.theme->placement, P.theme->height);
-	set_panel_bgpix();
 
+	/* create panel window */
+	P.win = create_panel_window(P.theme->placement, P.theme->height);
+	
+	/* set window bg */
+	Pixmap tile, mask;
+	imlib_context_set_display(X.display);
+	imlib_context_set_visual(X.visual);
+	imlib_context_set_drawable(P.win);
+	imlib_context_set_image(P.theme->tile_img);
+	imlib_render_pixmaps_for_whole_image(&tile, &mask);
+	P.bgpix = tile;
+	XSetWindowBackgroundPixmap(X.display, P.win, P.bgpix);
+
+	/* init tray if needed */
 	if (is_element_in_theme(P.theme, 't'))
 		init_tray();
 }
+
+/**************************************************************************
+  cleanup
+**************************************************************************/
 
 static void freeP()
 {
@@ -889,6 +934,10 @@ static void cleanup()
 	freeP();
 	LOG_MESSAGE("cleanup");
 }
+
+/**************************************************************************
+  libev callbacks
+**************************************************************************/
 
 static void xconnection_cb(EV_P_ struct ev_io *w, int revents)
 {
@@ -949,6 +998,10 @@ static void clock_redraw_cb(EV_P_ struct ev_timer *w, int revents)
 	render_present();
 }
 
+/**************************************************************************
+  signal handlers
+**************************************************************************/
+
 static void sighup_handler(int xxx)
 {
 	LOG_MESSAGE("sighup signal received");
@@ -964,6 +1017,10 @@ static void sigint_handler(int xxx)
 	xmemleaks();
 	exit(0);
 }
+
+/**************************************************************************
+  libev loop and main
+**************************************************************************/
 
 static void init_and_start_ev_loop(int xfd)
 {
@@ -996,7 +1053,7 @@ int main(int argc, char **argv)
 	signal(SIGINT, sigint_handler);
 
 	rebuild_desktops();
-	update_clients();
+	update_tasks();
 
 	render_update_panel_positions(&P);
 	render_panel(&P);
