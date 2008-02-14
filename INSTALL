@@ -13,16 +13,16 @@ INSTALL
 Simple build & install (as not root user and with sudo installed, or simply run as
 root without sudo):
 
-sudo scons
+scons && sudo scons install
 
 Will install bmpanel to /usr/bin/panel and themes to /usr/share/bmpanel/themes.
 If you don't like default prefix for install, you can specify it like this:
 
-sudo scons prefix=/usr/local
+scons prefix=/usr/local && sudo scons install
 
 for debug build use:
 
-sudo scons debug=1 memdebug=1
+scons debug=1 memdebug=1 && sudo scons install
 
 debug=1 currently does nothing
 memdebug=1 will enable special memory management and will help you to find 
