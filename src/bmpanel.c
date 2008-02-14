@@ -101,7 +101,7 @@ static int X_error_handler(Display *dpy, XErrorEvent *error)
 {
 	char buf[1024];
 	XGetErrorText(dpy, error->error_code, buf, sizeof(buf));
-	LOG_WARNING("X error: %s", buf);
+	LOG_WARNING("X error: %s (resource id: %d)", buf, error->resourceid);
 	return 0;
 }
 
@@ -147,7 +147,7 @@ static Window create_panel_window(uint placement, int h)
 
 	win = XCreateWindow(X.display, X.root, 0, y, X.screen_width, h, 0, 
 			CopyFromParent, InputOutput, X.visual, 0, 0);
-	XSelectInput(X.display, win, ButtonPressMask | ExposureMask | SubstructureNotifyMask);
+	XSelectInput(X.display, win, ButtonPressMask | ExposureMask | StructureNotifyMask);
 
 	/* get our place on desktop */
 	XChangeProperty(X.display, win, X.atoms[XATOM_NET_WM_STRUT], XA_CARDINAL, 32,
@@ -603,7 +603,7 @@ static void add_tray_icon(Window win)
 	t->win = win;
 	
 	/* listen necessary events */
-	/* XSelectInput(X.display, t->win, StructureNotifyMask | PropertyChangeMask); */
+	XSelectInput(X.display, t->win, StructureNotifyMask | PropertyChangeMask);
 
 	XSetWindowBorderWidth(X.display, t->win, 0);
 	XReparentWindow(X.display, t->win, P.win, 0, 0); 
