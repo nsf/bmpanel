@@ -18,17 +18,20 @@ static int parse_line(char *line, struct theme *t);
 static void parse_color(struct color *c, const char *value);
 static uchar hex_to_dec(uchar c);
 static int load_and_parse_theme(struct theme *t);
-static void calculate_values(struct theme *t);
 
 struct theme *load_theme(const char *dir)
 {
-	struct theme *t = xmallocz(sizeof(struct theme));
+	struct theme *t = XMALLOCZ(struct theme, 1);
 	t->themedir = xstrdup(dir);
 	if (!load_and_parse_theme(t)) {
 		free_theme(t);
 		return 0;
 	}
-	calculate_values(t);
+	
+	/* get theme height */
+	imlib_context_set_image(t->tile_img);
+	t->height = imlib_image_get_height();
+
 	return t;
 }
 
@@ -401,12 +404,6 @@ static int load_and_parse_theme(struct theme *t)
 
 	fclose(f);
 	return 1;
-}
-
-static void calculate_values(struct theme *t)
-{
-	imlib_context_set_image(t->tile_img);
-	t->height = imlib_image_get_height();
 }
 
 static uchar hex_to_dec(uchar c)

@@ -273,15 +273,16 @@ static int update_switcher_positions(int ox, struct desktop *desktops)
 {
 	struct desktop *iter, *prev;
 	switcher_pos = ox;
+	switcher_width = 0;
 
 	if (!desktops)
 		return 0;
 
-	int lw = 0, w = 0, state, textw;
+	int lastw = 0, w = 0, state, textw;
 	iter = prev = desktops;
 	state = iter->focused ? BSTATE_PRESSED : BSTATE_IDLE;
 	w += theme->switcher.space_gap;
-	ox += w; lw = w;
+	ox += w; lastw = w;
 	w += get_image_width(theme->switcher.left_corner_img[state]);
 	get_text_dimensions(theme->switcher.font, iter->name, &textw, 0);
 	w += textw + theme->switcher.text_padding;
@@ -293,15 +294,15 @@ static int update_switcher_positions(int ox, struct desktop *desktops)
 		get_text_dimensions(theme->switcher.font, iter->name, &textw, 0);
 		w += get_image_width(theme->switcher.right_img[state]);
 		prev->posx = ox;
-		prev->width = w - lw;
+		prev->width = w - lastw;
 		w += get_image_width(theme->switcher.separator_img);
-		ox += w - lw; lw = w;
+		ox += w - lastw; lastw = w;
 		w += get_image_width(theme->switcher.left_img[state]);
 		w += textw + theme->switcher.text_padding;
 	}
 	w += get_image_width(theme->switcher.right_corner_img[state]);
 	iter->posx = ox;
-	iter->width = w - lw;
+	iter->width = w - lastw;
 	w += theme->switcher.space_gap;
 
 	switcher_width = w;
