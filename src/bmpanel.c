@@ -35,6 +35,7 @@ enum atom_cnames {
 	XATOM_WM_STATE,
 	XATOM_NET_DESKTOP_NAMES,
 	XATOM_NET_WM_STATE,
+	XATOM_NET_ACTIVE_WINDOW,
 	XATOM_NET_WM_NAME,
 	XATOM_NET_WM_ICON,
 	XATOM_NET_WM_VISIBLE_NAME,
@@ -57,6 +58,7 @@ static char *atom_names[] = {
 	"WM_STATE",
 	"_NET_DESKTOP_NAMES",
 	"_NET_WM_STATE",
+	"_NET_ACTIVE_WINDOW",
 	"_NET_WM_NAME",
 	"_NET_WM_ICON",
 	"_NET_WM_VISIBLE_NAME",
@@ -373,12 +375,15 @@ static void rebuild_desktops()
 	names = name = get_prop_data(X.root, X.atoms[XATOM_NET_DESKTOP_NAMES], 
 			X.atoms[XATOM_UTF8_STRING], 0);
 
-	if (!names)
-		return;
-	
 	for (i = 0; i < desktopsnum; ++i) {
 		d = XMALLOCZ(struct desktop, 1);
-		d->name = xstrdup(name);
+		if (names)
+			d->name = xstrdup(name);
+		else {
+			char buf[16];
+			snprintf(buf, sizeof(buf), "%d", i+1);
+			d->name = xstrdup(buf);
+		}
 		d->focused = (i == activedesktop);
 		if (!last) {
 			P.desktops = d;
@@ -388,11 +393,14 @@ static void rebuild_desktops()
 			last = d;
 		}
 
-		len = strlen(name);
-		name += len + 1;
+		if (names) {
+			len = strlen(name);
+			name += len + 1;
+		}
 	}
-	
-	XFree(names);
+
+	if (names)
+		XFree(names);
 }
 
 static void switch_desktop(int d)
@@ -420,6 +428,25 @@ static void switch_desktop(int d)
 /**************************************************************************
   task management
 **************************************************************************/
+
+/*
+static void activate_task(struct task *t)
+{
+	XClientMessageEvent e;
+
+	e.window = t->win;
+	e.type = X.atoms[XATOM_NET_ACTIVE_WINDOW];
+	e.format = 32;
+	e.data.l[0] = 2;
+	e.data.l[1] = CurrentTime;
+	e.data.l[2] = 0;
+	e.data.l[3] = 0;
+	e.data.l[4] = 0;
+
+	XSendEvent(X.display, X.root, False, SubstructureNotifyMask |
+			SubstructureRedirectMask, (XEvent*)&e);
+}
+*/
 
 static void free_tasks()
 {
@@ -449,8 +476,13 @@ static void add_task(Window win, uint focused)
 	name = get_prop_data(win, X.atoms[XATOM_NET_WM_VISIBLE_NAME], X.atoms[XATOM_UTF8_STRING], 0);
 	if (!name)
 		name = get_prop_data(win, X.atoms[XATOM_NET_WM_NAME], X.atoms[XATOM_UTF8_STRING], 0);
-	t->name = xstrdup(name);
-	XFree(name);
+	if (!name)
+		name = get_prop_data(win, XA_WM_NAME, XA_STRING, 0);
+	if (name) {
+		t->name = xstrdup(name);
+		XFree(name);
+	} else
+		t->name = xstrdup("<unknown>");
 	t->desktop = get_window_desktop(win);
 	t->iconified = is_window_iconified(win); 
 	t->focused = focused;
@@ -821,6 +853,9 @@ static void handle_button(int x, int y, int button)
 					iter->focused = 1;
 					XRaiseWindow(X.display, iter->win);
 					XSetInputFocus(X.display, iter->win, RevertToNone, CurrentTime);
+
+					/* send _NET_ACTIVE_WINDOW */
+					/* activate_task(iter); */
 				}
 			}
 			commence_taskbar_redraw = 1;

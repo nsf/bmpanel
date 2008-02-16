@@ -448,14 +448,15 @@ void render_taskbar(struct task *tasks, struct desktop *desktops)
 			if (theme->taskbar.icon_h && theme->taskbar.icon_w) {
 				int srcw, srch;
 				int y = (theme->height - theme->taskbar.icon_h) / 2;
-				srcw = theme->taskbar.icon_w;
-				srch = theme->taskbar.icon_h;
+				imlib_context_set_image(t->icon);
+				srcw = imlib_image_get_width();
+				srch = imlib_image_get_height();
 				y += theme->taskbar.icon_offset_y;
 				x += theme->taskbar.icon_offset_x;
 				w -= theme->taskbar.icon_offset_x;
 				imlib_context_set_image(bb);
 				imlib_blend_image_onto_image(t->icon, 1, 0, 0, srcw, srch,
-						x, y, srcw, srch);
+						x, y, theme->taskbar.icon_w, theme->taskbar.icon_h);
 				x += theme->taskbar.icon_w;
 				w -= theme->taskbar.icon_w;
 			}
