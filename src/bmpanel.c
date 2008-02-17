@@ -319,6 +319,22 @@ static Imlib_Image get_window_icon(Window win)
 	return sizedicon;
 }
 
+static char *get_window_name(Window win)
+{
+	char *ret, *name = 0;
+	name = get_prop_data(win, X.atoms[XATOM_NET_WM_VISIBLE_NAME], X.atoms[XATOM_UTF8_STRING], 0);
+	if (!name)
+		name = get_prop_data(win, X.atoms[XATOM_NET_WM_NAME], X.atoms[XATOM_UTF8_STRING], 0);
+	if (!name)
+		name = get_prop_data(win, XA_WM_NAME, XA_STRING, 0);
+	if (name) {
+		ret = xstrdup(name);
+		XFree(name);
+	} else
+		ret = xstrdup("<unknown>");
+	return ret;
+}
+
 /**************************************************************************
   desktop management
 **************************************************************************/
@@ -469,20 +485,9 @@ static void add_task(Window win, uint focused)
 	if (is_window_hidden(win))
 		return;
 
-	char *name;
 	struct task *t = XMALLOCZ(struct task, 1);
 	t->win = win;
-
-	name = get_prop_data(win, X.atoms[XATOM_NET_WM_VISIBLE_NAME], X.atoms[XATOM_UTF8_STRING], 0);
-	if (!name)
-		name = get_prop_data(win, X.atoms[XATOM_NET_WM_NAME], X.atoms[XATOM_UTF8_STRING], 0);
-	if (!name)
-		name = get_prop_data(win, XA_WM_NAME, XA_STRING, 0);
-	if (name) {
-		t->name = xstrdup(name);
-		XFree(name);
-	} else
-		t->name = xstrdup("<unknown>");
+	t->name = get_window_name(win); 
 	t->desktop = get_window_desktop(win);
 	t->iconified = is_window_iconified(win); 
 	t->focused = focused;
@@ -552,6 +557,9 @@ static void update_tasks()
 	XGetInputFocus(X.display, &focuswin, &rev);
 
 	wins = get_prop_data(X.root, X.atoms[XATOM_NET_CLIENT_LIST], XA_WINDOW, &num);
+
+	/* if there are no client list? we are in not NETWM compliant desktop? */
+	/* if (!wins) return; */
 
 	/* if one or more windows in my list are not in _NET_CLIENT_LIST, delete them */
 	struct task *next, *iter = P.tasks;
@@ -772,25 +780,12 @@ static void handle_property_notify(Window win, Atom a)
 		commence_taskbar_redraw = 1;
 	}
 	
-
 	/* window changed it's visible name or name */
 	if (a == X.atoms[XATOM_NET_WM_NAME] || 
 	    a == X.atoms[XATOM_NET_WM_VISIBLE_NAME]) 
 	{
-		char *name;
-
 		xfree(t->name);
-		name = get_prop_data(win, X.atoms[XATOM_NET_WM_VISIBLE_NAME], 
-				X.atoms[XATOM_UTF8_STRING], 0);
-		if (!name)
-			name = get_prop_data(win, X.atoms[XATOM_NET_WM_NAME], 
-					X.atoms[XATOM_UTF8_STRING], 0);
-		if (!name)
-			t->name = xstrdup("<unknown>");
-		else {
-			t->name = xstrdup(name);
-			XFree(name);
-		}
+		t->name = get_window_name(t->win);
 		commence_taskbar_redraw = 1;
 	}
 
