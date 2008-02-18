@@ -1163,6 +1163,8 @@ int main(int argc, char **argv)
 	log_attach_callback(log_console_callback);
 
 	switch (argc) {
+	case 1: 
+		break;
 	case 2:
 		theme = argv[1];
 		break;
