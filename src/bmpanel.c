@@ -30,6 +30,7 @@
 #define SHARE_THEME_PATH PREFIX "/share/bmpanel/themes/"
 
 #define TRAY_REQUEST_DOCK 0
+#define MWM_HINTS_DECORATIONS (1L << 1)
 
 enum atom_cnames {
 	XATOM_WM_STATE,
@@ -53,7 +54,16 @@ enum atom_cnames {
 	XATOM_NET_CURRENT_DESKTOP,
 	XATOM_NET_SYSTEM_TRAY_OPCODE,
 	XATOM_UTF8_STRING,
+	XATOM_MOTIF_WM_HINTS,
 	XATOM_COUNT
+};
+
+struct mwmhints {
+	uint32_t flags;
+	uint32_t functions;
+	uint32_t decorations;
+	int32_t input_mode;
+	uint32_t status;
 };
 
 static char *atom_names[] = {
@@ -77,7 +87,8 @@ static char *atom_names[] = {
 	"_NET_NUMBER_OF_DESKTOPS",
 	"_NET_CURRENT_DESKTOP",
 	"_NET_SYSTEM_TRAY_OPCODE",
-	"UTF8_STRING"
+	"UTF8_STRING",
+	"_MOTIF_WM_HINTS"
 };
 
 static struct {
@@ -336,7 +347,7 @@ static Window create_panel_window(uint placement, int h)
 		strut[3] = 0;
 		strut[2] = h;
 	} else if (placement == PLACE_BOTTOM)
-		y = X.wa_h - h;
+		y = X.wa_y + X.wa_h - h;
 
 	win = XCreateWindow(X.display, X.root, X.wa_x, y, X.wa_w, h, 0, 
 			CopyFromParent, InputOutput, X.visual, 0, 0);
@@ -360,12 +371,12 @@ static Window create_panel_window(uint placement, int h)
 	XSizeHints size_hints;
 	size_hints.flags = PPosition;
 	XSetWMNormalHints(X.display, win, &size_hints);
-	/*
-	XChangeProperty(X.display, win, XA_WM_NORMAL_HINTS, XA_WM_SIZE_HINTS, 32,
-			PropModeReplace, (uchar *)&size_hints,
-			sizeof(XSizeHints) / 4);
-	*/
-	
+
+	/* set motif decoration hints */
+	struct mwmhints mwm = {MWM_HINTS_DECORATIONS,0,0,0,0};
+	XChangeProperty(X.display, win, X.atoms[XATOM_MOTIF_WM_HINTS], X.atoms[XATOM_MOTIF_WM_HINTS], 
+			32, PropModeReplace, (uchar*)&mwm, sizeof(struct mwmhints) / 4);
+
 	XMapWindow(X.display, win);
 	return win;
 }
@@ -684,9 +695,8 @@ static void add_tray_icon(Window win)
 	t->win = win;
 	
 	/* listen necessary events */
-	XSelectInput(X.display, t->win, StructureNotifyMask | PropertyChangeMask);
+	XSelectInput(X.display, t->win, ExposureMask | StructureNotifyMask);
 
-	XSetWindowBorderWidth(X.display, t->win, 0);
 	XReparentWindow(X.display, t->win, P.win, 0, 0); 
 	XMapRaised(X.display, t->win);
 
@@ -772,6 +782,17 @@ static void handle_reparent_notify(Window win, Window parent)
 		del_tray_icon(win);
 		render_update_panel_positions(&P);
 		commence_panel_redraw = 1;
+	}
+}
+
+static void handle_configure_notify(Window win)
+{
+	struct tray *t = find_tray_icon(win);
+	if (t) {
+		XWindowChanges wc;
+		wc.width = P.theme->tray_icon_w;
+		wc.height = P.theme->tray_icon_h;
+		XConfigureWindow(X.display, win, CWWidth | CWHeight, &wc);
 	}
 }
 
@@ -897,6 +918,10 @@ static void handle_button(int x, int y, int button)
 				} else {
 					iter->focused = 1;
 					activate_task(iter);
+					
+					XWindowChanges wc;
+					wc.stack_mode = Above;
+					XConfigureWindow(X.display, iter->win, CWStackMode, &wc);
 				}
 			}
 			commence_taskbar_redraw = 1;
@@ -1009,9 +1034,9 @@ validation:
 
 static void freeP()
 {
-	free_tray_icons();
 	if (is_element_in_theme(P.theme, 't'))
 		shutdown_tray();
+	free_tray_icons();
 	free_theme(P.theme);
 	free_tasks();
 	free_desktops();
@@ -1040,6 +1065,9 @@ static void xconnection_cb(EV_P_ struct ev_io *w, int revents)
 			break;
 		case ButtonPress:
 			handle_button(e.xbutton.x, e.xbutton.y, e.xbutton.button);
+			break;
+		case ConfigureNotify:
+			handle_configure_notify(e.xconfigure.window);
 			break;
 		case PropertyNotify:
 			handle_property_notify(e.xproperty.window, e.xproperty.atom);	
@@ -1127,16 +1155,28 @@ static void init_and_start_ev_loop(int xfd)
     	ev_loop(el, 0);
 }
 
+const char *defaulttheme = "native";
+
 int main(int argc, char **argv)
 {
+	const char *theme;
 	log_attach_callback(log_console_callback);
 
-	if (argc != 2)
+	switch (argc) {
+	case 1:
+		theme = defaulttheme;
+		break;
+	case 2:
+		theme = argv[1];
+		break;
+	default:
 		LOG_ERROR("usage: bmpanel <theme>");
-	LOG_MESSAGE("starting bmpanel with theme: %s", argv[1]);
+		break;
+	}
+	LOG_MESSAGE("starting bmpanel with theme: %s", theme);
 
 	initX();
-	initP(argv[1]);
+	initP(theme);
 	init_render(P.theme, X.display, P.win);
 
 	signal(SIGHUP, sighup_handler);

@@ -10,7 +10,7 @@ separator_img 			separator_img.png
 tray_icon_w 			24
 tray_icon_h 			24
 
-# order of elements here
+# order of elements here:
 # 's' - desktop Switcher
 # 'b' - taskBar
 # 't' - icon Tray

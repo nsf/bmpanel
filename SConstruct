@@ -154,6 +154,9 @@ if not 'install' in COMMAND_LINE_TARGETS:
 	build = env.Program(target = 'bmpanel', source = [objs])
 	env.Alias('build', build)
 
-env.Alias('install', env.Install(os.path.join(env['prefix'], 'bin'), 'bmpanel'))
-env.Alias('install', env.Install(os.path.join(env['prefix'], 'share/bmpanel'), 'themes'))
+install_bin = env.Install(os.path.join(env['prefix'], 'bin'), 'bmpanel')
+install_themes = env.Install(os.path.join(env['prefix'], 'share/bmpanel'), 'themes')
+
+env.Alias('install', install_bin)
+env.Alias('install', install_themes)
 Default('build')
