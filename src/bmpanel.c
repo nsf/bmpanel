@@ -1159,13 +1159,10 @@ const char *defaulttheme = "native";
 
 int main(int argc, char **argv)
 {
-	const char *theme;
+	const char *theme = defaulttheme;
 	log_attach_callback(log_console_callback);
 
 	switch (argc) {
-	case 1:
-		theme = defaulttheme;
-		break;
 	case 2:
 		theme = argv[1];
 		break;
