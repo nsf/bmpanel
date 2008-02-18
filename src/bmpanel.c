@@ -37,6 +37,7 @@ enum atom_cnames {
 	XATOM_NET_WM_STATE,
 	XATOM_NET_ACTIVE_WINDOW,
 	XATOM_NET_WM_NAME,
+	XATOM_NET_WORKAREA,
 	XATOM_NET_WM_ICON,
 	XATOM_NET_WM_VISIBLE_NAME,
 	XATOM_NET_WM_STATE_SKIP_TASKBAR,
@@ -60,6 +61,7 @@ static char *atom_names[] = {
 	"_NET_WM_STATE",
 	"_NET_ACTIVE_WINDOW",
 	"_NET_WM_NAME",
+	"_NET_WORKAREA",
 	"_NET_WM_ICON",
 	"_NET_WM_VISIBLE_NAME",
 	"_NET_WM_STATE_SKIP_TASKBAR",
@@ -81,6 +83,12 @@ static struct {
 	int screen;
 	int screen_width;
 	int screen_height;
+	
+	int wa_x;
+	int wa_y;
+	int wa_w;
+	int wa_h;
+
 	Visual *visual;
 	Window root;
 	Atom atoms[XATOM_COUNT];
@@ -127,56 +135,6 @@ static void append_font_path_to_imlib()
 		imlib_add_path_to_font_path(fontpaths[i]);
 
 	XFreeFontPath(fontpaths);
-}
-
-/**************************************************************************
-  creating panel window
-**************************************************************************/
-
-static Window create_panel_window(uint placement, int h)
-{
-	Window win;
-	int y = 0;
-	uint32_t strut[4] = {0,0,0,h};
-	uint32_t tmp;
-
-	if (placement == PLACE_TOP) {
-		y = 0;
-		strut[3] = 0;
-		strut[2] = h;
-	} else if (placement == PLACE_BOTTOM)
-		y = X.screen_height - h;
-
-	win = XCreateWindow(X.display, X.root, 0, y, X.screen_width, h, 0, 
-			CopyFromParent, InputOutput, X.visual, 0, 0);
-	XSelectInput(X.display, win, ButtonPressMask | ExposureMask | StructureNotifyMask);
-
-	/* get our place on desktop */
-	XChangeProperty(X.display, win, X.atoms[XATOM_NET_WM_STRUT], XA_CARDINAL, 32,
-			PropModeReplace, (uchar*)&strut, 4);
-
-	/* we want to be on all desktops */
-	tmp = 0xFFFFFFFF;
-	XChangeProperty(X.display, win, X.atoms[XATOM_NET_WM_DESKTOP], XA_CARDINAL, 32,
-			PropModeReplace, (uchar*)&tmp, 1);
-
-	/* we're panel! */
-	tmp = X.atoms[XATOM_NET_WM_WINDOW_TYPE_DOCK];
-	XChangeProperty(X.display, win, X.atoms[XATOM_NET_WM_WINDOW_TYPE], XA_ATOM, 32,
-			PropModeReplace, (uchar*)&tmp, 1);
-	
-	/* place window on it's position */
-	XSizeHints size_hints;
-	size_hints.flags = PPosition;
-	XSetWMNormalHints(X.display, win, &size_hints);
-	/*
-	XChangeProperty(X.display, win, XA_WM_NORMAL_HINTS, XA_WM_SIZE_HINTS, 32,
-			PropModeReplace, (uchar *)&size_hints,
-			sizeof(XSizeHints) / 4);
-	*/
-	
-	XMapWindow(X.display, win);
-	return win;
 }
 
 /**************************************************************************
@@ -334,6 +292,57 @@ static char *get_window_name(Window win)
 		ret = xstrdup("<unknown>");
 	return ret;
 }
+
+/**************************************************************************
+  creating panel window
+**************************************************************************/
+
+static Window create_panel_window(uint placement, int h)
+{
+	Window win;
+	int y = 0;
+	uint32_t strut[4] = {0,0,0,h};
+	uint32_t tmp;
+
+	if (placement == PLACE_TOP) {
+		y = X.wa_y;
+		strut[3] = 0;
+		strut[2] = h;
+	} else if (placement == PLACE_BOTTOM)
+		y = X.wa_h - h;
+
+	win = XCreateWindow(X.display, X.root, X.wa_x, y, X.wa_w, h, 0, 
+			CopyFromParent, InputOutput, X.visual, 0, 0);
+	XSelectInput(X.display, win, ButtonPressMask | ExposureMask | StructureNotifyMask);
+
+	/* get our place on desktop */
+	XChangeProperty(X.display, win, X.atoms[XATOM_NET_WM_STRUT], XA_CARDINAL, 32,
+			PropModeReplace, (uchar*)&strut, 4);
+
+	/* we want to be on all desktops */
+	tmp = 0xFFFFFFFF;
+	XChangeProperty(X.display, win, X.atoms[XATOM_NET_WM_DESKTOP], XA_CARDINAL, 32,
+			PropModeReplace, (uchar*)&tmp, 1);
+
+	/* we're panel! */
+	tmp = X.atoms[XATOM_NET_WM_WINDOW_TYPE_DOCK];
+	XChangeProperty(X.display, win, X.atoms[XATOM_NET_WM_WINDOW_TYPE], XA_ATOM, 32,
+			PropModeReplace, (uchar*)&tmp, 1);
+	
+	/* place window on it's position */
+	XSizeHints size_hints;
+	size_hints.flags = PPosition;
+	XSetWMNormalHints(X.display, win, &size_hints);
+	/*
+	XChangeProperty(X.display, win, XA_WM_NORMAL_HINTS, XA_WM_SIZE_HINTS, 32,
+			PropModeReplace, (uchar *)&size_hints,
+			sizeof(XSizeHints) / 4);
+	*/
+	
+	XMapWindow(X.display, win);
+	return win;
+}
+
 
 /**************************************************************************
   desktop management
@@ -889,12 +898,26 @@ static void initX()
 	X.screen_height	= DisplayHeight(X.display, X.screen);
 	X.visual 	= DefaultVisual(X.display, X.screen);
 	X.root 		= RootWindow(X.display, X.screen);
+	X.wa_x 		= 0;
+	X.wa_y 		= 0;
+	X.wa_w 		= X.screen_width;
+	X.wa_h 		= X.screen_height;
 	
 	/* get internal atoms */
 	XInternAtoms(X.display, atom_names, XATOM_COUNT, False, X.atoms);
 	XSelectInput(X.display, X.root, PropertyChangeMask);
 
 	append_font_path_to_imlib();
+
+	/* get workarea */
+	int32_t *workarea = get_prop_data(X.root, X.atoms[XATOM_NET_WORKAREA], XA_CARDINAL, 0);
+	if (workarea) {
+		X.wa_x = workarea[0];
+		X.wa_y = workarea[1];
+		X.wa_w = workarea[2];
+		X.wa_h = workarea[3];
+		XFree(workarea);	
+	}
 }
 
 static void initP(const char *theme)
