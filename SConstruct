@@ -157,11 +157,7 @@ if not 'install' in COMMAND_LINE_TARGETS:
 
 install_bin = env.Install(os.path.join(env['prefix'], 'bin'), 'bmpanel')
 install_themes = env.Install(os.path.join(env['prefix'], 'share/bmpanel'), 'themes')
-install_native_theme = env.Install(os.path.join(env['prefix'], 'share/bmpanel/themes/native'), 'themes/native/theme')
-install_redmini_theme = env.Install(os.path.join(env['prefix'], 'share/bmpanel/themes/redmini'), 'themes/redmini/theme')
 
 env.Alias('install', install_bin)
 env.Alias('install', install_themes)
-env.Alias('install', install_native_theme)
-env.Alias('install', install_redmini_theme)
 Default('build')
