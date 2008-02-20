@@ -428,7 +428,7 @@ static int update_taskbar_positions(int ox, int width,
 				ox += sep;
 			/* hack, fill empty space in the end of the task bar */
 			if (!t->next || t->next->desktop != activedesktop)
-				t->width += taskbar_pos + sep + width - ox - 1;
+				t->width += taskbar_pos + width - ox;
 		}
 		t = t->next;
 	}
@@ -544,9 +544,9 @@ void render_update_panel_positions(struct panel *p)
 			e++;
 			continue;
 		}
-		e++;
 		if (theme->separator_img)
 			ox += get_image_width(theme->separator_img);
+		e++;
 	}
 	int taskbarw = bbwidth - ox;
 
