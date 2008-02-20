@@ -34,18 +34,11 @@ tb_tile_pressed_img 		tile_img_pressed.png
 
 tb_separator_img 		red.png
 
-tb_default_icon_img 		tb_default_icon_img.png
-
 tb_font 			DejaVuSans/8
 tb_text_color_idle 		FFFFFF
 tb_text_color_pressed 		FFFFFF
 tb_text_offset_x 		5
 tb_text_align 			left
-
-tb_icon_offset_x 		5
-tb_icon_offset_y 		1
-tb_icon_w 			16
-tb_icon_h 			16
 
 #--------------------- switcher --------------------------------
 
@@ -54,8 +47,5 @@ ds_tile_pressed_img 		tile_img_pressed.png
 
 ds_separator_img 		red.png
 
-ds_font 			DejaVuSans/8
-ds_text_color_idle 		FFFFFF
-ds_text_color_pressed 		FFFFFF
-ds_text_padding 		12
+ds_text_padding 		48
 ds_text_align 			center

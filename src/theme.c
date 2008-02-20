@@ -32,6 +32,23 @@ struct theme *load_theme(const char *dir)
 	imlib_context_set_image(t->tile_img);
 	t->height = imlib_image_get_height();
 
+	/* resize default taskbar icon to theme size */
+	if (THEME_USE_TASKBAR_ICON(t)) {
+		int w,h;
+		Imlib_Image sizedicon;
+
+		imlib_context_set_image(t->taskbar.default_icon_img);
+		w = imlib_image_get_width();
+		h = imlib_image_get_height();
+		sizedicon = imlib_create_cropped_scaled_image(0, 0, w, h, 
+				t->taskbar.icon_w, t->taskbar.icon_h);
+		imlib_context_set_image(sizedicon);
+		imlib_image_set_has_alpha(1);
+		imlib_context_set_image(t->taskbar.default_icon_img);
+		imlib_free_image();
+		t->taskbar.default_icon_img = sizedicon;
+	}
+
 	return t;
 }
 
@@ -90,8 +107,7 @@ int theme_is_valid(struct theme *t)
 
 	if (is_element_in_theme(t, 's')) {
 		/* check desktop switcher */
-		if (!t->switcher.font || 
-		    !t->switcher.tile_img[BSTATE_IDLE] ||
+		if (!t->switcher.tile_img[BSTATE_IDLE] ||
 		    !t->switcher.tile_img[BSTATE_PRESSED])
 		{
 			LOG_WARNING("one or more desktop switcher images or fonts are missing");
@@ -238,6 +254,10 @@ static int parse_key_value(const char *key, const char *value, struct theme *t)
 		PARSE_INT(t->tray_icon_w);
 	} ECMP("tray_icon_h") {
 		PARSE_INT(t->tray_icon_h);
+	} ECMP("tray_space_gap") {
+		PARSE_INT(t->tray_space_gap);
+	} ECMP("tray_icons_spacing") {
+		PARSE_INT(t->tray_icons_spacing);
 	/* ---------------------------- clock ----------------------- */
 	} ECMP("clock_right_img") {
 		SAFE_LOAD_IMAGE(t->clock.right_img);

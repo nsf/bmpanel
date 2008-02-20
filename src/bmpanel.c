@@ -10,6 +10,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <dirent.h>
 #include <ev.h>
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
@@ -21,16 +22,6 @@
 /**************************************************************************
   GLOBALS
 **************************************************************************/
-
-#ifndef PREFIX
-#define PREFIX "/usr"
-#endif
-
-#define HOME_THEME_PATH "/.bmpanel/themes/"
-#define SHARE_THEME_PATH PREFIX "/share/bmpanel/themes/"
-
-#define TRAY_REQUEST_DOCK 0
-#define MWM_HINTS_DECORATIONS (1L << 1)
 
 enum atom_cnames {
 	XATOM_WM_STATE,
@@ -91,6 +82,16 @@ static char *atom_names[] = {
 	"_MOTIF_WM_HINTS"
 };
 
+#ifndef PREFIX
+#define PREFIX "/usr"
+#endif
+
+#define HOME_THEME_PATH "/.bmpanel/themes"
+#define SHARE_THEME_PATH PREFIX "/share/bmpanel/themes"
+
+#define TRAY_REQUEST_DOCK 0
+#define MWM_HINTS_DECORATIONS (1L << 1)
+
 static struct {
 	Display *display;
 	int screen;
@@ -113,6 +114,10 @@ static struct panel P;
 static int commence_taskbar_redraw;
 static int commence_panel_redraw;
 static int commence_switcher_redraw;
+
+static const char *theme = "native";
+static const char *version = "bmpanel version 0.9.6";
+static const char *usage = "usage: bmpanel [--version] [--help] [--usage] [--list] THEME";
 
 static void cleanup();
 
@@ -254,11 +259,8 @@ static int is_window_iconified(Window win)
 
 static Imlib_Image get_window_icon(Window win)
 {
-	if (P.theme->taskbar.icon_w == 0 &&
-	    P.theme->taskbar.icon_h == 0)
-	{
+	if (!THEME_USE_TASKBAR_ICON(P.theme))
 		return 0;
-	}
 
 	Imlib_Image ret = 0;
 
@@ -284,7 +286,7 @@ static Imlib_Image get_window_icon(Window win)
 				int x = 0, y = 0;
 				uint w = 0, h = 0, d = 0, bw = 0;
 				XGetGeometry(X.display, hints->icon_pixmap, &pix, 
-						&x, &y, &w, &w, &bw, &d);
+						&x, &y, &w, &h, &bw, &d);
 	
 				imlib_context_set_drawable(hints->icon_pixmap);
 				ret = imlib_create_image_from_drawable(hints->icon_mask, 
@@ -566,7 +568,6 @@ static void del_task(Window win)
 	while (iter) {
 		next = iter->next;
 		if (iter->win == win) {
-			/* TODO: generic icon */
 			if (iter->icon && iter->icon != P.theme->taskbar.default_icon_img) {
 				imlib_context_set_image(iter->icon);
 				imlib_free_image();
@@ -613,7 +614,7 @@ static void update_tasks()
 
 	wins = get_prop_data(X.root, X.atoms[XATOM_NET_CLIENT_LIST], XA_WINDOW, &num);
 
-	/* if there are no client list? we are in not NETWM compliant desktop? */
+	/* if there are no client list? we are in not NETWM compliant wm? */
 	/* if (!wins) return; */
 
 	/* if one or more windows in my list are not in _NET_CLIENT_LIST, delete them */
@@ -986,7 +987,7 @@ static void initP(const char *theme)
 {
 	char dirbuf[4096];
 	/* first try to find theme in user home dir */
-	snprintf(dirbuf, sizeof(dirbuf), "%s%s%s", 
+	snprintf(dirbuf, sizeof(dirbuf), "%s%s/%s", 
 			getenv("HOME"), 
 			HOME_THEME_PATH,
 			theme);
@@ -994,7 +995,7 @@ static void initP(const char *theme)
 	if (P.theme) goto validation;
 
 	/* now try share dir */
-	snprintf(dirbuf, sizeof(dirbuf), "%s%s",
+	snprintf(dirbuf, sizeof(dirbuf), "%s/%s",
 			SHARE_THEME_PATH,
 			theme);
 	P.theme = load_theme(dirbuf);
@@ -1137,6 +1138,56 @@ static void sigint_handler(int xxx)
 }
 
 /**************************************************************************
+  list themes
+**************************************************************************/
+
+static void list_themes_in_dir(DIR *d)
+{
+	struct dirent *de;
+	int len;
+
+	while ((de = readdir(d)) != 0) {
+		len = strlen(de->d_name);
+		switch (len) {
+		case 1:
+			if (de->d_name[0] == '.')
+				continue;
+		case 2:
+			if (de->d_name[0] == '.' && de->d_name[1] == '.')
+				continue;
+		default:
+			break;
+		}
+		LOG_MESSAGE("* %s", de->d_name);
+	}
+}
+
+static void list_themes()
+{
+	char dirbuf[4096];
+	DIR *d;
+
+	snprintf(dirbuf, sizeof(dirbuf), "%s%s", 
+			getenv("HOME"), 
+			HOME_THEME_PATH);
+	LOG_MESSAGE("user themes in %s", dirbuf);
+	d = opendir(dirbuf);
+	if (d) {
+		list_themes_in_dir(d);
+		closedir(d);
+	} else
+		LOG_MESSAGE("- none");
+
+	LOG_MESSAGE("system themes in %s", SHARE_THEME_PATH);
+	d = opendir(SHARE_THEME_PATH);
+	if (d) {
+		list_themes_in_dir(d);
+		closedir(d);
+	} else
+		LOG_MESSAGE("- none");
+}
+
+/**************************************************************************
   libev loop and main
 **************************************************************************/
 
@@ -1155,23 +1206,42 @@ static void init_and_start_ev_loop(int xfd)
     	ev_loop(el, 0);
 }
 
-const char *defaulttheme = "native";
+static void parse_args(int argc, char **argv)
+{
+	int i;
+
+	for (i = 1; i < argc; i++) {
+		const char *arg = argv[i];
+
+		if (!strcmp(arg, "--version")) {
+			LOG_MESSAGE(version);
+			exit(0);
+		}
+		if (!strcmp(arg, "--help")) {
+			LOG_MESSAGE("There are no help, no manpage yet. See INSTALL "
+				"in source distro and/or visit:\nhttp://nsf.110mb.com/bmpanel");
+			exit(0);
+		}
+		if (!strcmp(arg, "--usage")) {
+			LOG_MESSAGE(usage);
+			exit(0);
+		}
+		if (!strcmp(arg, "--list")) {
+			list_themes();
+			exit(0);
+		}
+		break;
+	}
+
+	if (i < argc) {
+		theme = argv[i];
+	}
+}
 
 int main(int argc, char **argv)
 {
-	const char *theme = defaulttheme;
 	log_attach_callback(log_console_callback);
-
-	switch (argc) {
-	case 1: 
-		break;
-	case 2:
-		theme = argv[1];
-		break;
-	default:
-		LOG_ERROR("usage: bmpanel <theme>");
-		break;
-	}
+	parse_args(argc, argv);
 	LOG_MESSAGE("starting bmpanel with theme: %s", theme);
 
 	initX();

@@ -97,6 +97,8 @@ struct theme {
 
 	int tray_icon_w;
 	int tray_icon_h;
+	int tray_space_gap;
+	int tray_icons_spacing;
 
 	/* elements */
 	struct clock_theme clock;
@@ -107,6 +109,11 @@ struct theme {
 	int height;
 	char *themedir;
 };
+
+#define THEME_USE_TASKBAR_ICON(t) \
+	(is_element_in_theme((t), 'b') && \
+	 (t)->taskbar.icon_w != 0 && \
+	 (t)->taskbar.icon_h != 0)
 
 struct theme *load_theme(const char *dir);
 void free_theme(struct theme *t);

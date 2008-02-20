@@ -145,6 +145,12 @@ static void draw_clock_background(int ox, int width)
 
 static void get_text_dimensions(Imlib_Font font, const char *text, int *w, int *h)
 {
+	if (!font) {
+		if (w) *w = 0;
+		if (h) *h = 0;
+		return;
+	}
+		
 	imlib_context_set_font(font);
 	imlib_get_text_size(text, w, h);
 }
@@ -152,6 +158,9 @@ static void get_text_dimensions(Imlib_Font font, const char *text, int *w, int *
 static void draw_text(Imlib_Font font, uint align, int ox, int width, 
 		int offx, int offy, const char *text, struct color *c)
 {
+	if (!font)
+		return;
+
 	imlib_context_set_image(bb);
 	imlib_context_set_font(font);
 	imlib_context_set_color(c->r, c->g, c->b, 255);
@@ -189,12 +198,17 @@ static int get_tray_width(struct tray *trayicons)
 	}
 
 	tray_width = count * 24;
+	if (tray_width) {
+		tray_width += theme->tray_space_gap * 2 + 
+			(count - 1) * theme->tray_icons_spacing;
+	}
 	return tray_width;
 }
 
 static int update_tray_positions(int ox, struct tray *trayicons)
 {
 	tray_pos = ox;
+	ox += theme->tray_space_gap;
 
 	int count = 0;
 	int y,w,h;
@@ -209,11 +223,15 @@ static int update_tray_positions(int ox, struct tray *trayicons)
 			iter->posx = ox;
 			iter->width = w;
 		}
-		ox += w;
+		ox += w + theme->tray_icons_spacing;
 		iter = iter->next;
 	}
 
 	tray_width = count * theme->tray_icon_w;
+	if (tray_width) {
+		tray_width += theme->tray_space_gap * 2 + 
+			(count - 1) * theme->tray_icons_spacing;
+	}
 	return tray_width;
 }
 
@@ -410,7 +428,7 @@ static int update_taskbar_positions(int ox, int width,
 				ox += sep;
 			/* hack, fill empty space in the end of the task bar */
 			if (!t->next || t->next->desktop != activedesktop)
-				t->width += taskbar_pos + sep + width - ox;
+				t->width += taskbar_pos + sep + width - ox - 1;
 		}
 		t = t->next;
 	}
