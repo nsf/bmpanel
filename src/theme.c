@@ -110,7 +110,7 @@ int theme_is_valid(struct theme *t)
 		if (!t->switcher.tile_img[BSTATE_IDLE] ||
 		    !t->switcher.tile_img[BSTATE_PRESSED])
 		{
-			LOG_WARNING("one or more desktop switcher images or fonts are missing");
+			LOG_WARNING("one or more desktop switcher images are missing");
 			return 0;
 		}
 	} 

@@ -197,7 +197,7 @@ static int get_tray_width(struct tray *trayicons)
 		iter = iter->next;
 	}
 
-	tray_width = count * 24;
+	tray_width = count * theme->tray_icon_w;
 	if (tray_width) {
 		tray_width += theme->tray_space_gap * 2 + 
 			(count - 1) * theme->tray_icons_spacing;
