@@ -309,10 +309,9 @@ static Imlib_Image get_window_icon(Window win)
 	h = imlib_image_get_height();
 	Imlib_Image sizedicon = imlib_create_cropped_scaled_image(0, 0, w, h, 
 			P.theme->taskbar.icon_w, P.theme->taskbar.icon_h);
+	imlib_free_image();
 	imlib_context_set_image(sizedicon);
 	imlib_image_set_has_alpha(1);
-	imlib_context_set_image(ret);
-	imlib_free_image();
 
 	return sizedicon;
 }
