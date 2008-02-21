@@ -42,10 +42,9 @@ struct theme *load_theme(const char *dir)
 		h = imlib_image_get_height();
 		sizedicon = imlib_create_cropped_scaled_image(0, 0, w, h, 
 				t->taskbar.icon_w, t->taskbar.icon_h);
+		imlib_free_image();
 		imlib_context_set_image(sizedicon);
 		imlib_image_set_has_alpha(1);
-		imlib_context_set_image(t->taskbar.default_icon_img);
-		imlib_free_image();
 		t->taskbar.default_icon_img = sizedicon;
 	}
 
