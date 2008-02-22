@@ -380,6 +380,22 @@ static Window create_panel_window(uint placement, int h)
 
 	XMapWindow(X.display, win);
 	XSync(X.display, 0);
+	
+	/* also send message to wm (fluxbox bug?) */
+	XClientMessageEvent cli;
+	cli.type = ClientMessage;
+	cli.window = win;
+	cli.message_type = X.atoms[XATOM_NET_WM_DESKTOP];
+	cli.format = 32;
+	cli.data.l[0] = 0xFFFFFFFF;
+	cli.data.l[1] = 0;
+	cli.data.l[2] = 0;
+	cli.data.l[3] = 0;
+	cli.data.l[4] = 0;
+	
+	XSendEvent(X.display, X.root, False, SubstructureNotifyMask | 
+			SubstructureRedirectMask, (XEvent*)&cli);
+
 	return win;
 }
 
