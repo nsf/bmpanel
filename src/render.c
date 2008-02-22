@@ -498,9 +498,9 @@ void render_taskbar(struct task *tasks, struct desktop *desktops)
   general render stuff
 **************************************************************************/
 
-void init_render(struct theme *t, Display *dpy, Drawable drawable)
+void init_render(struct theme *t, Display *dpy, Drawable drawable, uint width)
 {
-	bbwidth = DisplayWidth(dpy, DefaultScreen(dpy));
+	bbwidth = width;
 	bbheight = t->height;
 	bb = imlib_create_image(bbwidth, bbheight);
 	bbdpy = dpy;

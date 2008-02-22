@@ -379,6 +379,7 @@ static Window create_panel_window(uint placement, int h)
 			32, PropModeReplace, (uchar*)&mwm, sizeof(struct mwmhints) / 4);
 
 	XMapWindow(X.display, win);
+	XSync(X.display, 0);
 	return win;
 }
 
@@ -1245,7 +1246,7 @@ int main(int argc, char **argv)
 
 	initX();
 	initP(theme);
-	init_render(P.theme, X.display, P.win);
+	init_render(P.theme, X.display, P.win, X.wa_w);
 
 	signal(SIGHUP, sighup_handler);
 	signal(SIGINT, sigint_handler);
