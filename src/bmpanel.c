@@ -116,7 +116,7 @@ static int commence_panel_redraw;
 static int commence_switcher_redraw;
 
 static const char *theme = "native";
-static const char *version = "bmpanel version 0.9.8";
+static const char *version = "bmpanel version 0.9.10";
 static const char *usage = "usage: bmpanel [--version] [--help] [--usage] [--list] THEME";
 
 static void cleanup();
@@ -370,8 +370,16 @@ static Window create_panel_window(uint placement, int h)
 	
 	/* place window on it's position */
 	XSizeHints size_hints;
-	size_hints.flags = PPosition;
+	size_hints.flags = PPosition | PMaxSize | PMinSize;
+	size_hints.min_width = size_hints.max_width = h;
+	size_hints.min_height = size_hints.max_height = X.wa_w;
 	XSetWMNormalHints(X.display, win, &size_hints);
+
+	XWMHints wm_hints;
+	wm_hints.flags = InputHint | StateHint;
+	wm_hints.initial_state = 1;
+	wm_hints.input = 0;
+	XSetWMHints(X.display, win, &wm_hints);
 
 	/* set motif decoration hints */
 	struct mwmhints mwm = {MWM_HINTS_DECORATIONS,0,0,0,0};
@@ -379,22 +387,24 @@ static Window create_panel_window(uint placement, int h)
 			32, PropModeReplace, (uchar*)&mwm, sizeof(struct mwmhints) / 4);
 
 	XMapWindow(X.display, win);
-	XSync(X.display, 0);
+	XFlush(X.display);
 	
 	/* also send message to wm (fluxbox bug?) */
-	XClientMessageEvent cli;
-	cli.type = ClientMessage;
-	cli.window = win;
-	cli.message_type = X.atoms[XATOM_NET_WM_DESKTOP];
-	cli.format = 32;
-	cli.data.l[0] = 0xFFFFFFFF;
-	cli.data.l[1] = 0;
-	cli.data.l[2] = 0;
-	cli.data.l[3] = 0;
-	cli.data.l[4] = 0;
-	
-	XSendEvent(X.display, X.root, False, SubstructureNotifyMask | 
-			SubstructureRedirectMask, (XEvent*)&cli);
+	{
+		XClientMessageEvent cli;
+		cli.type = ClientMessage;
+		cli.window = win;
+		cli.message_type = X.atoms[XATOM_NET_WM_DESKTOP];
+		cli.format = 32;
+		cli.data.l[0] = 0xFFFFFFFF;
+		cli.data.l[1] = 0;
+		cli.data.l[2] = 0;
+		cli.data.l[3] = 0;
+		cli.data.l[4] = 0;
+		
+		XSendEvent(X.display, X.root, False, SubstructureNotifyMask | 
+				SubstructureRedirectMask, (XEvent*)&cli);
+	}
 
 	return win;
 }
