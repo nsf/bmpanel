@@ -353,7 +353,6 @@ static Window create_panel_window(uint placement, int h)
 	win = XCreateWindow(X.display, X.root, X.wa_x, y, X.wa_w, h, 0, 
 			CopyFromParent, InputOutput, X.visual, 0, 0);
 	XSelectInput(X.display, win, ButtonPressMask | ExposureMask | StructureNotifyMask);
-
 	/* get our place on desktop */
 	XChangeProperty(X.display, win, X.atoms[XATOM_NET_WM_STRUT], XA_CARDINAL, 32,
 			PropModeReplace, (uchar*)&strut, 4);
@@ -367,9 +366,17 @@ static Window create_panel_window(uint placement, int h)
 	tmp = X.atoms[XATOM_NET_WM_WINDOW_TYPE_DOCK];
 	XChangeProperty(X.display, win, X.atoms[XATOM_NET_WM_WINDOW_TYPE], XA_ATOM, 32,
 			PropModeReplace, (uchar*)&tmp, 1);
+
 	
 	/* place window on it's position */
 	XSizeHints size_hints;
+
+	/* we need this for pekwm (other modern WMs should ignore them) */
+	size_hints.x = X.wa_x;
+	size_hints.y = y;
+	size_hints.width = X.wa_w;
+	size_hints.height = h;
+
 	size_hints.flags = PPosition | PMaxSize | PMinSize;
 	size_hints.min_width = size_hints.max_width = h;
 	size_hints.min_height = size_hints.max_height = X.wa_w;
@@ -674,7 +681,7 @@ nodelete:
   systray functions
 **************************************************************************/
 
-static void init_tray()
+static int check_tray_selection_owner()
 {
 	char systray_atom[32];
 	snprintf(systray_atom, sizeof(systray_atom), "_NET_SYSTEM_TRAY_S%u", X.screen);
@@ -682,17 +689,20 @@ static void init_tray()
 	X.trayselatom = XInternAtom(X.display, systray_atom, False);
 	Window old_owner = XGetSelectionOwner(X.display, X.trayselatom);
 	if (old_owner != 0) {
-		LOG_WARNING("selection already have it's owner, disabling tray");
-		theme_remove_element(P.theme, 't');
-		return;
+		return 1;
 	}
+	return 0;
+}
 
-	P.trayselowner = XCreateWindow(X.display, P.win, 0, 0, 1, 1, 0, 
-			CopyFromParent, InputOnly, X.visual, 0, 0);
+static int acquire_tray_selection()
+{
+	int so = check_tray_selection_owner();
+	if (so)
+		return 0;
+
 	XSetSelectionOwner(X.display, X.trayselatom, P.trayselowner, CurrentTime);
 
 	/* done with selection, now we will inform clients */
-
 	XEvent e;
 	e.xclient.type = ClientMessage;
 	e.xclient.message_type = XInternAtom(X.display, "MANAGER", False);
@@ -706,8 +716,20 @@ static void init_tray()
 	e.xclient.data.l[4] = 0l; /* selection specific data */
 
 	XSendEvent(X.display, X.root, False, StructureNotifyMask, &e);
-
 	/* that's it */
+	return 1;
+}
+
+static void init_tray()
+{
+	P.trayselowner = XCreateWindow(X.display, P.win, 0, 0, 1, 1, 0, 
+			CopyFromParent, InputOnly, X.visual, 0, 0);
+
+	if (!acquire_tray_selection()) {
+		LOG_WARNING("selection already have it's owner, disabling tray");
+		theme_remove_element(P.theme, 't');
+		return;
+	}
 }
 
 static void shutdown_tray()
@@ -797,6 +819,18 @@ static void handle_client_message(XClientMessageEvent *e)
 		add_tray_icon(e->data.l[2]);		
 		render_update_panel_positions(&P);
 		commence_panel_redraw = 1;
+	}
+}
+
+static void handle_selection_clear(XSelectionClearEvent *e)
+{
+	if (!is_element_in_theme(P.theme, 't'))
+		return;
+
+	if (e->selection == P.trayselowner) {
+		if (e->window == P.win) {
+			acquire_tray_selection();
+		}
 	}
 }
 
@@ -1087,6 +1121,9 @@ static void xconnection_cb(EV_P_ struct ev_io *w, int revents)
 	while (XPending(X.display)) {
 		XNextEvent(X.display, &e);
 		switch (e.type) {
+		case SelectionClear:
+			handle_selection_clear(&e.xselectionclear);
+			break;
 		case Expose:
 			commence_panel_redraw = 1;
 			break;
