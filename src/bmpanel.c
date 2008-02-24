@@ -735,6 +735,7 @@ static void init_tray()
 static void shutdown_tray()
 {
 	XSetSelectionOwner(X.display, X.trayselatom, None, CurrentTime);
+	XDestroyWindow(X.display, P.trayselowner);
 }
 
 static void add_tray_icon(Window win)
@@ -748,6 +749,9 @@ static void add_tray_icon(Window win)
 
 	XReparentWindow(X.display, t->win, P.win, 0, 0); 
 	XMapRaised(X.display, t->win);
+
+	/* when panel dies, systray clients stay alive */
+	XChangeSaveSet(X.display, t->win, SetModeInsert);
 
 	struct tray *iter = P.trayicons;
 	if (!iter) {
@@ -827,11 +831,8 @@ static void handle_selection_clear(XSelectionClearEvent *e)
 	if (!is_element_in_theme(P.theme, 't'))
 		return;
 
-	if (e->selection == P.trayselowner) {
-		if (e->window == P.win) {
-			acquire_tray_selection();
-		}
-	}
+	if (e->selection == P.trayselowner && e->window == P.win)
+		acquire_tray_selection();
 }
 
 static void handle_reparent_notify(Window win, Window parent)
@@ -1102,6 +1103,7 @@ static void freeP()
 	free_tasks();
 	free_desktops();
 	imlib_free_pixmap_and_mask(P.bgpix);
+	XDestroyWindow(X.display, P.win);
 }
 
 static void cleanup()
