@@ -750,9 +750,6 @@ static void add_tray_icon(Window win)
 	XReparentWindow(X.display, t->win, P.win, 0, 0); 
 	XMapRaised(X.display, t->win);
 
-	/* when panel dies, systray clients stay alive */
-	XChangeSaveSet(X.display, t->win, SetModeInsert);
-
 	struct tray *iter = P.trayicons;
 	if (!iter) {
 		P.trayicons = t;
@@ -805,10 +802,11 @@ static void free_tray_icons()
 	iter = P.trayicons;
 	while (iter) {
 		next = iter->next;
-		XReparentWindow(X.display, X.root, iter->win, 0, 0);
+		XReparentWindow(X.display, iter->win, X.root, 0, 0);
 		xfree(iter);
 		iter = next;
 	}
+	XSync(X.display, 0);
 }
 
 /**************************************************************************
