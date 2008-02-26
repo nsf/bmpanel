@@ -427,12 +427,12 @@ static int load_and_parse_theme(struct theme *t)
 
 static uchar hex_to_dec(uchar c)
 {
-	if (isxdigit(c)) {
-		if (isdigit(c))
-			return ((char)c - '0');
-		c = tolower(c);
-		return ((char)c - 'a' + 10);
-	}
+	if (c >= '0' && c <= '9')
+		return c - '0';
+	if (c >= 'a' && c <= 'z')
+		return c - 'a' + 10;
+	if (c >= 'A' && c <= 'Z')
+		return c - 'A' + 10;
 	return 15;
 }
 

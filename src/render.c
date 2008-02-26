@@ -264,8 +264,17 @@ static int get_clock_width()
 	return update_clock_positions(0);
 }
 
-void render_clock()
+int render_clock()
 {
+	static char buflasttime[128];
+	char buftime[128];
+	time_t current_time;
+	current_time = time(0);
+	strftime(buftime, sizeof(buftime), theme->clock.format, localtime(&current_time));
+	if (!strcmp(buflasttime, buftime))
+		return 0;
+	strcpy(buflasttime, buftime);
+	
 	tile_image(theme->tile_img, clock_pos, clock_width);
 	int ox = clock_pos;
 	draw_clock_background(ox, clock_width);
@@ -275,16 +284,12 @@ void render_clock()
 	int x = ox + gap + lgap;
 	int w = clock_width - ((gap * 2) + lgap + rgap);
 
-	char buftime[128];
-	time_t current_time;
-	current_time = time(0);
-	strftime(buftime, sizeof(buftime), theme->clock.format, localtime(&current_time));
-
 	imlib_context_set_cliprect(x, 0, w, bbheight);
 	draw_text(theme->clock.font, theme->clock.text_align, x, w,
 			theme->clock.text_offset_x, theme->clock.text_offset_y,
 			buftime, &theme->clock.text_color);
 	imlib_context_set_cliprect(0, 0, bbwidth, bbheight);
+	return 1;
 }
 
 /**************************************************************************

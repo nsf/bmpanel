@@ -17,7 +17,7 @@ void shutdown_render();
 void render_update_panel_positions(struct panel *p);
 void render_switcher(struct desktop *d);
 void render_taskbar(struct task *t, struct desktop *d);
-void render_clock();
+int render_clock();
 void render_panel(struct panel *p);
 void render_present();
 

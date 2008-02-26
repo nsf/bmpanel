@@ -146,7 +146,7 @@ static int X_io_error_handler(Display *dpy)
 
 static void append_font_path_to_imlib()
 {
-	int fonts, i;
+	int32_t fonts, i;
 	char **fontpaths = XGetFontPath(X.display, &fonts);
 	
 	for (i = 0; i < fonts; ++i)
@@ -181,7 +181,7 @@ static void *get_prop_data(Window win, Atom prop, Atom type, int *items)
 static int get_prop_int(Window win, Atom at)
 {
 	int num = 0;
-	unsigned long *data;
+	uint32_t *data;
 
 	data = get_prop_data(win, at, XA_CARDINAL, 0);
 	if (data) {
@@ -211,7 +211,7 @@ static int get_window_desktop(Window win)
 
 static int is_window_hidden(Window win)
 {
-	unsigned long *data;
+	uint32_t *data;
 	int ret = 0;
 	int num;
 
@@ -316,7 +316,7 @@ static Imlib_Image get_window_icon(Window win)
 	return sizedicon;
 }
 
-static char *get_window_name(Window win)
+static char *alloc_window_name(Window win)
 {
 	char *ret, *name = 0;
 	name = get_prop_data(win, X.atoms[XATOM_NET_WM_VISIBLE_NAME], X.atoms[XATOM_UTF8_STRING], 0);
@@ -568,7 +568,7 @@ static void add_task(Window win, uint focused)
 
 	struct task *t = XMALLOCZ(struct task, 1);
 	t->win = win;
-	t->name = get_window_name(win); 
+	t->name = alloc_window_name(win); 
 	t->desktop = get_window_desktop(win);
 	t->iconified = is_window_iconified(win); 
 	t->focused = focused;
@@ -829,6 +829,7 @@ static void handle_selection_clear(XSelectionClearEvent *e)
 	if (!is_element_in_theme(P.theme, 't'))
 		return;
 
+	/* if bmpanel lost selection, try to get it again */
 	if (e->selection == P.trayselowner && e->window == P.win)
 		acquire_tray_selection();
 }
@@ -913,7 +914,7 @@ static void handle_property_notify(Window win, Atom a)
 	    a == X.atoms[XATOM_NET_WM_VISIBLE_NAME]) 
 	{
 		xfree(t->name);
-		t->name = get_window_name(t->win);
+		t->name = alloc_window_name(t->win);
 		commence_taskbar_redraw = 1;
 	}
 
@@ -1176,8 +1177,8 @@ static void xconnection_cb(EV_P_ struct ev_io *w, int revents)
 
 static void clock_redraw_cb(EV_P_ struct ev_timer *w, int revents)
 {
-	render_clock();
-	render_present();
+	if (render_clock())
+		render_present();
 }
 
 /**************************************************************************
