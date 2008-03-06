@@ -75,9 +75,9 @@ def check_pkg_config(context, version):
 	context.Result(ret)
 	return ret
 
-def check_pkg(context, name):
+def check_pkg(context, name, version):
 	context.Message('Checking for %s... ' % name)
-	ret = context.TryAction('pkg-config --exists \'%s\'' % name)[0]
+	ret = context.TryAction('pkg-config --exists %s --atleast-version=%s' % (name, version))[0]
 	context.Result(ret)
 	if ret:
 		append_lib_flags(context, name)
@@ -124,8 +124,8 @@ if not 'install' in COMMAND_LINE_TARGETS:
 		print_not_found_error('pkg-config')
 		Exit(1)
 
-	if not conf.check_pkg('imlib2'):
-		print_not_found_error('imlib2')
+	if not conf.check_pkg('imlib2', '1.4.0'):
+		print_not_found_error('imlib2 >= 1.4.0')
 		Exit(1)
 
 	env = conf.Finish()
