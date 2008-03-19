@@ -141,7 +141,7 @@ if not 'install' in COMMAND_LINE_TARGETS:
 	if int(env['debug']):
 		env.Append(CCFLAGS = ' -O0 -g -DLOG_ASSERT_ENABLED -DDEBUG ')
 	else:
-		env.Append(CCFLAGS = ' -O2 ', LINKFLAGS = ' -s ')
+		env.Append(CCFLAGS = ' -O2 -march=native ', LINKFLAGS = ' -s ')
 
 	if int(env['memdebug']):
 		env.Append(CCFLAGS = ' -DMEMDEBUG ')

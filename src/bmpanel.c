@@ -378,8 +378,8 @@ static Window create_panel_window(uint placement, int h)
 	size_hints.height = h;
 
 	size_hints.flags = PPosition | PMaxSize | PMinSize;
-	size_hints.min_width = size_hints.max_width = h;
-	size_hints.min_height = size_hints.max_height = X.wa_w;
+	size_hints.min_width = size_hints.max_width = X.wa_w;
+	size_hints.min_height = size_hints.max_height = h;
 	XSetWMNormalHints(X.display, win, &size_hints);
 
 	XWMHints wm_hints;
@@ -1061,7 +1061,7 @@ static void initP(const char *theme)
 	P.theme = load_theme(dirbuf);
 	if (P.theme) goto validation;
 
-	/* and last try is absolute dir */
+	/* and last try is absolute or relative dir */
 	P.theme = load_theme(theme);
 	if (!P.theme)
 		LOG_ERROR("failed to load theme: %s", theme);
