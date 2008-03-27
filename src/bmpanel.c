@@ -23,7 +23,7 @@
   GLOBALS
 **************************************************************************/
 
-enum atom_cnames {
+enum {
 	XATOM_WM_STATE,
 	XATOM_NET_DESKTOP_NAMES,
 	XATOM_NET_WM_STATE,
