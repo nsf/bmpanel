@@ -214,6 +214,13 @@ static int is_window_hidden(Window win)
 	uint32_t *data;
 	int ret = 0;
 	int num;
+	Atom *type;
+
+	type = get_prop_data(win, X.atoms[XATOM_NET_WM_WINDOW_TYPE], XA_ATOM, &num);
+	if (type && *type == X.atoms[XATOM_NET_WM_WINDOW_TYPE_DOCK]) {
+		XFree(type);
+		return 1;
+	}
 
 	data = get_prop_data(win, X.atoms[XATOM_NET_WM_STATE], XA_ATOM, &num);
 	if (!data)
@@ -573,6 +580,9 @@ static void add_task(Window win, uint focused)
 	t->iconified = is_window_iconified(win); 
 	t->focused = focused;
 	t->icon = get_window_icon(win);
+
+	if (t->desktop == -1)
+		LOG_DEBUG("task: %s", t->name);
 
 	XSelectInput(X.display, win, PropertyChangeMask | 
 			FocusChangeMask | StructureNotifyMask);

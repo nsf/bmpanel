@@ -411,7 +411,7 @@ static int update_taskbar_positions(int ox, int width,
 	int taskscount = 0;
 	struct task *t = tasks;
 	while (t) {
-		if (t->desktop == activedesktop)
+		if (t->desktop == activedesktop || t->desktop == -1)
 			taskscount++;
 		t = t->next;
 	}
@@ -425,6 +425,13 @@ static int update_taskbar_positions(int ox, int width,
 
 	t = tasks;
 	while (t) {
+		if (t->desktop == -1) {
+			t->posx = ox;
+			t->width = taskw;
+			ox += taskw;
+			if (t->next)
+				ox += sep;
+		}
 		if (t->desktop == activedesktop) {
 			t->posx = ox;
 			t->width = taskw;
@@ -458,7 +465,7 @@ void render_taskbar(struct task *tasks, struct desktop *desktops)
 	int gap = theme->taskbar.space_gap;
 
 	while (t) {
-		if (t->desktop == activedesktop) {
+		if (t->desktop == activedesktop || t->desktop == -1) {
 			state = t->focused ? BSTATE_PRESSED : BSTATE_IDLE;
 			/* draw bg */
 			draw_taskbar_button(state, t->posx, t->width);
