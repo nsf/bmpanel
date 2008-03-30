@@ -595,6 +595,39 @@ static void add_task(Window win, uint focused)
 	}
 }
 
+static void sort_move_task(struct task *rt)
+{
+	struct task *prev = 0, *next, *iter, *t = P.tasks;
+	while (t) {
+		next = t->next;
+		if (t->win == rt->win) {
+			if (!prev)
+				P.tasks = next;
+			else 
+				prev->next = next;
+			break;
+		}
+		prev = t;
+		t = next;
+	}
+
+	iter = P.tasks;
+	if (!iter || iter->desktop > t->desktop) {
+		t->next = P.tasks;
+		P.tasks = t;
+		return;
+	}
+
+	for (;;) {
+		if (!iter->next || iter->next->desktop > t->desktop) {
+			t->next = iter->next;
+			iter->next = t;
+			return;
+		}
+		iter = iter->next;
+	}
+}
+
 static void del_task(Window win)
 {
 	struct task *prev = 0, *next, *iter = P.tasks;
@@ -859,8 +892,6 @@ static void handle_configure_notify(Window win)
 
 static void handle_property_notify(Window win, Atom a)
 {
-	char *name = XGetAtomName(X.display, a);
-	XFree(name);
 	/* global changes */
 	if (win == X.root) {
 		/* user or WM reconfigured it's desktops */
@@ -870,6 +901,7 @@ static void handle_property_notify(Window win, Atom a)
 			rebuild_desktops();
 			render_update_panel_positions(&P);
 			commence_panel_redraw = 1;
+			return;
 		}
 
 		/* user or WM switched desktop */
@@ -878,6 +910,7 @@ static void handle_property_notify(Window win, Atom a)
 			render_update_panel_positions(&P);
 			commence_switcher_redraw = 1;
 			commence_taskbar_redraw = 1;
+			return;
 		}
 
 		/* updates in client list */
@@ -885,12 +918,14 @@ static void handle_property_notify(Window win, Atom a)
 			update_tasks();
 			render_update_panel_positions(&P);
 			commence_taskbar_redraw = 1;
+			return;
 		}
 
 		if (a == X.atoms[XATOM_NET_ACTIVE_WINDOW]) {
 			Window win = get_prop_window(X.root, X.atoms[XATOM_NET_ACTIVE_WINDOW]);
 			update_tasks_focus(win);
 			commence_taskbar_redraw = 1;
+			return;
 		}
 	}
 
@@ -904,9 +939,11 @@ static void handle_property_notify(Window win, Atom a)
 	/* widow changed it's desktop */
 	if (a == X.atoms[XATOM_NET_WM_DESKTOP]) {
 		t->desktop = get_window_desktop(win);
+		sort_move_task(t);
 		render_update_panel_positions(&P);
 		commence_switcher_redraw = 1;
 		commence_taskbar_redraw = 1;
+		return;
 	}
 	
 	/* window changed it's visible name or name */
@@ -916,6 +953,7 @@ static void handle_property_notify(Window win, Atom a)
 		xfree(t->name);
 		t->name = alloc_window_name(t->win);
 		commence_taskbar_redraw = 1;
+		return;
 	}
 
 	if (a == X.atoms[XATOM_NET_WM_STATE] ||
@@ -924,6 +962,7 @@ static void handle_property_notify(Window win, Atom a)
 		t->iconified = is_window_iconified(t->win);
 		t->focused = (get_prop_window(X.root, X.atoms[XATOM_NET_ACTIVE_WINDOW]) == t->win);
 		commence_taskbar_redraw = 1;
+		return;
 	}
 }
 
