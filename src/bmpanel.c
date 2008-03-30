@@ -116,7 +116,7 @@ static int commence_panel_redraw;
 static int commence_switcher_redraw;
 
 static const char *theme = "native";
-static const char *version = "bmpanel version 0.9.10";
+static const char *version = "bmpanel version 0.9.14";
 static const char *usage = "usage: bmpanel [--version] [--help] [--usage] [--list] THEME";
 
 static void cleanup();
