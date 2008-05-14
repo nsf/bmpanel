@@ -35,7 +35,7 @@ Simply run:
 
 bmpanel <theme>
 
-where <theme> is one of build-in themes or separate downloaded theme.
+where <theme> is one of built-in themes or separate downloaded theme.
 
 BMPanel have no config files, it uses theme files instead. BMPanel will search
 for themes in following places in following order:
