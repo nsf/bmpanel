@@ -128,7 +128,7 @@ static void cleanup();
 static int X_error_handler(Display *dpy, XErrorEvent *error)
 {
 	char buf[1024];
-	if (error->type == BadWindow)
+	if (error->error_code == BadWindow)
 		return 0;
 	XGetErrorText(dpy, error->error_code, buf, sizeof(buf));
 	LOG_WARNING("X error: %s (resource id: %d)", buf, error->resourceid);

@@ -65,7 +65,8 @@ static void tile_image(Imlib_Image img, int ox, int width)
 	while (width > 0) {
 		width -= curw;
 		if (width < 0)
-			curw = -width;
+			curw += width;
+	
 		imlib_blend_image_onto_image(img, 0,
 				0, 0, curw, theme->height,
 				ox, 0, curw, theme->height);
