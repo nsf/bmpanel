@@ -39,6 +39,7 @@ enum {
 	XATOM_NET_MOVERESIZE_WINDOW,
 	XATOM_NET_WM_WINDOW_TYPE,
 	XATOM_NET_WM_WINDOW_TYPE_DOCK,
+	XATOM_NET_WM_WINDOW_TYPE_DESKTOP,
 	XATOM_NET_WM_STRUT,
 	XATOM_NET_CLIENT_LIST,
 	XATOM_NET_NUMBER_OF_DESKTOPS,
@@ -73,6 +74,7 @@ static char *atom_names[] = {
 	"_NET_MOVERESIZE_WINDOW",
 	"_NET_WM_WINDOW_TYPE",
 	"_NET_WM_WINDOW_TYPE_DOCK",
+	"_NET_WM_WINDOW_TYPE_DESKTOP",
 	"_NET_WM_STRUT",
 	"_NET_CLIENT_LIST",
 	"_NET_NUMBER_OF_DESKTOPS",
@@ -116,7 +118,7 @@ static int commence_panel_redraw;
 static int commence_switcher_redraw;
 
 static const char *theme = "native";
-static const char *version = "bmpanel version 0.9.16";
+static const char *version = "bmpanel version 0.9.17";
 static const char *usage = "usage: bmpanel [--version] [--help] [--usage] [--list] THEME";
 
 static void cleanup();
@@ -219,9 +221,14 @@ static int is_window_hidden(Window win)
 	Atom *type;
 
 	type = get_prop_data(win, X.atoms[XATOM_NET_WM_WINDOW_TYPE], XA_ATOM, &num);
-	if (type && *type == X.atoms[XATOM_NET_WM_WINDOW_TYPE_DOCK]) {
+	if (type) {
+		if (*type == X.atoms[XATOM_NET_WM_WINDOW_TYPE_DOCK] ||
+		    *type == X.atoms[XATOM_NET_WM_WINDOW_TYPE_DESKTOP]) 
+		{
+			XFree(type);
+			return 1;
+		}
 		XFree(type);
-		return 1;
 	}
 
 	data = get_prop_data(win, X.atoms[XATOM_NET_WM_STATE], XA_ATOM, &num);
