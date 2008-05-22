@@ -23,7 +23,7 @@ clock_right_img 		clock_right_img.png
 clock_tile_img 			clock_tile_img.png
 clock_left_img 			clock_left_img.png
 
-clock_font 			DejaVuSans/14
+clock_font 			DejaVuSans-14
 clock_text_color 		FFFFFF
 clock_text_offset_x 		0
 clock_text_offset_y 		0
@@ -45,7 +45,7 @@ tb_left_pressed_img 		tb_left_pressed_img.png
 
 tb_default_icon_img 		tb_default_icon_img.png
 
-tb_font 			DejaVuSans/8
+tb_font 			DejaVuSans-8
 tb_text_color_idle 		FFFFFF
 tb_text_color_pressed 		FFFFFF
 tb_text_offset_x 		5
@@ -77,7 +77,7 @@ ds_left_pressed_img 		ds_left_pressed_img.png
 
 ds_separator_img 		ds_separator_img.png
 
-ds_font 			DejaVuSans/8
+ds_font 			DejaVuSans-8
 ds_text_color_idle 		FFFFFF
 ds_text_color_pressed 		FFFFFF
 ds_text_offset_x 		0

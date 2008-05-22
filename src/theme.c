@@ -2,6 +2,7 @@
  * Copyright (C) 2008 nsf
  */
 
+#include <fontconfig/fontconfig.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
@@ -19,8 +20,15 @@ static void parse_color(struct color *c, const char *value);
 static uchar hex_to_dec(uchar c);
 static int load_and_parse_theme(struct theme *t);
 
+static Imlib_Font load_font(const char *pattern);
+static int init_fontcfg();
+static void shutdown_fontcfg();
+
 struct theme *load_theme(const char *dir)
 {
+	if (!init_fontcfg())
+		return 0;
+
 	struct theme *t = XMALLOCZ(struct theme, 1);
 	t->themedir = xstrdup(dir);
 	if (!load_and_parse_theme(t)) {
@@ -90,6 +98,7 @@ void free_theme(struct theme *t)
 	SAFE_FREE_FONT(t->switcher.font);
 
 	xfree(t);
+	shutdown_fontcfg();
 }
 
 int theme_is_valid(struct theme *t)
@@ -229,7 +238,7 @@ static int parse_key_value(const char *key, const char *value, struct theme *t)
 #define ECMP(str) else CMP(str)
 #define DODIR if (value[0] == '/') snprintf(buf, sizeof(buf), "%s", value); else snprintf(buf, sizeof(buf), "%s/%s", t->themedir, value)
 #define SAFE_LOAD_IMAGE(img) DODIR; img = imlib_load_image(buf); if (!img) do { LOG_WARNING("failed to load image: %s", buf); return 0; } while (0)
-#define SAFE_LOAD_FONT(font) font = imlib_load_font(value); if (!font) do { LOG_WARNING("failed to load font: %s", value); return 0; } while (0)
+#define SAFE_LOAD_FONT(font) font = load_font(value); if (!font) do { LOG_WARNING("failed to load font: %s", value); return 0; } while (0)
 #define PARSE_INT(un) if (1 != sscanf(value, "%d", &un)) do { LOG_WARNING("failed to parse integer: %s", value); return 0; } while (0)
 
 	/* -------------------------- general ---------------------- */
@@ -447,4 +456,82 @@ static void parse_color(struct color *c, const char *value)
 	/* blue */
 	c->b = 16 * hex_to_dec(*value++);
 	c->b += hex_to_dec(*value++);
+}
+
+/**************************************************************************
+  font config stuff
+**************************************************************************/
+
+static Imlib_Font load_font(const char *pattern)
+{
+	char buf[512];
+	FcPattern *pat;
+	FcPattern *match;
+	FcResult result;
+
+	pat = FcNameParse((FcChar8*)pattern);
+	if (!pat) {
+		LOG_WARNING("failed to parse font name to pattern");
+		return 0;
+	}
+
+	FcConfigSubstitute(0, pat, FcMatchPattern);
+	FcDefaultSubstitute(pat);
+
+	match = FcFontMatch(0, pat, &result);
+	FcPatternDestroy(pat);
+
+	if (!match) {
+		LOG_WARNING("no matching font found");
+		return 0;
+	}
+
+	FcChar8 *filename_tmp;
+	char *filename;
+	int size;
+	if (FcPatternGetString(match, FC_FILE, 0, &filename_tmp) != FcResultMatch) {
+		LOG_WARNING("can't get font filename from match");
+		FcPatternDestroy(match);
+		return 0;
+	}
+
+	if (FcPatternGetInteger(match, FC_SIZE, 0, &size) != FcResultMatch) {
+		LOG_WARNING("can't get font size from match");
+		FcPatternDestroy(match);
+		return 0;
+	}
+	filename = xstrdup((char*)filename_tmp);
+	FcPatternDestroy(match);
+
+	/* cut off file extension */
+	char *stmp = strrchr(filename, '.');
+	if (!stmp) {
+		LOG_WARNING("failed to find '.' in font file name, miss extension?");
+		return 0;
+	}
+	if (strcasecmp(stmp, ".ttf") != 0) {
+		LOG_WARNING("only ttf files supported");
+		return 0;
+	}
+	*stmp = '\0';
+
+	/* form imlib2 font string */
+	snprintf(buf, sizeof(buf), "%s/%d", filename, size);
+
+	xfree(filename);
+	return imlib_load_font(buf);
+}
+
+static int init_fontcfg()
+{
+	if (!FcInit()) {
+		LOG_WARNING("failed to initialize fontconfig");
+		return 0;
+	}
+	return 1;
+}
+
+static void shutdown_fontcfg()
+{
+	FcFini();
 }

@@ -128,6 +128,11 @@ if not 'install' in COMMAND_LINE_TARGETS:
 		print_not_found_error('imlib2 >= 1.4.0')
 		Exit(1)
 
+	if not conf.check_pkg('fontconfig', '2.0.0'):
+		print_not_found_error('fontconfig >= 2.0.0')
+		Exit(1)
+
+
 	env = conf.Finish()
 
 #------------------------------------------------------------------------------
@@ -136,7 +141,7 @@ if not 'install' in COMMAND_LINE_TARGETS:
 
 if not 'install' in COMMAND_LINE_TARGETS:
 	set_custom_printer()
-	env.Append(CCFLAGS = ' -std=c99 -Wall -DPREFIX=\\\"' + env['prefix'] + '\\\"')
+	env.Append(CCFLAGS = ' -std=gnu99 -Wall -DPREFIX=\\\"' + env['prefix'] + '\\\"')
 
 	if int(env['debug']):
 		env.Append(CCFLAGS = ' -O0 -g -DLOG_ASSERT_ENABLED -DDEBUG ')
