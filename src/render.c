@@ -629,5 +629,6 @@ void render_present()
 	imlib_context_set_display(bbdpy);
 	imlib_context_set_visual(bbvis);
 	imlib_context_set_drawable(bbwin);
+	imlib_context_set_image(bb);
 	imlib_render_image_on_drawable(0,0);
 }
