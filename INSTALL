@@ -1,5 +1,4 @@
-REQUIREMENTS
-------------
+REQUIREMENTS ------------
 
  - imlib2
  - freetype2
@@ -7,16 +6,16 @@ REQUIREMENTS
  - libev
  - scons and gcc 4.x.x to compile library (tested on gcc 4.2.3)
 
-INSTALL
--------
+INSTALL -------
 
-Simple build & install (as not root user and with sudo installed, or simply run as
-root without sudo):
+Simple build & install (as not root user and with sudo installed, or
+simply run as root without sudo):
 
 scons && sudo scons install
 
-Will install bmpanel to /usr/bin/panel and themes to /usr/share/bmpanel/themes.
-If you don't like default prefix for install, you can specify it like this:
+Will install bmpanel to /usr/bin/panel and themes to
+/usr/share/bmpanel/themes.  If you don't like default prefix for
+install, you can specify it like this:
 
 scons prefix=/usr/local && sudo scons install
 
@@ -24,12 +23,10 @@ for debug build use:
 
 scons debug=1 memdebug=1 && sudo scons install
 
-debug=1 currently does nothing
-memdebug=1 will enable special memory management and will help you to find 
-memleaks (if any).
+debug=1 currently does nothing memdebug=1 will enable special memory
+management and will help you to find memleaks (if any).
 
-RUNNING
--------
+RUNNING -------
 
 Simply run:
 
@@ -37,29 +34,26 @@ bmpanel <theme>
 
 where <theme> is one of built-in themes or separate downloaded theme.
 
-BMPanel have no config files, it uses theme files instead. BMPanel will search
-for themes in following places in following order:
+BMPanel have no config files, it uses theme files instead. BMPanel
+will search for themes in following places in following order:
 
-1. ~/.bmpanel/themes/<theme>
-2. PREFIX/share/bmpanel/themes/<theme> 
-(default: /usr/share/bmpanel/themes/<theme>)
-3. <theme> (if you use absolute path)
+1. ~/.bmpanel/themes/<theme> 2. PREFIX/share/bmpanel/themes/<theme>
+(default: /usr/share/bmpanel/themes/<theme>) 3. <theme> (if you use
+absolute path)
 
-You might want to run bmpanel in background. For example with native theme:
+You might want to run bmpanel in background. For example with native
+theme:
 
 bmpanel native &
 
-Don't bother to use themes as config. Just copy one of PREFIX/share/bmpanel/themes to your ~/.bmpanel/themes 
-dir and change them as you want.
+Don't bother to use themes as config. Just copy one of
+PREFIX/share/bmpanel/themes to your ~/.bmpanel/themes dir and change
+them as you want.
 
 THEME NOTES
 -----------
 
-One thing you should know about bmpanel themes. BMPanel currently doesn't use 
-xft, it uses freetype2 directly, so you MUST supply to it ttf fonts. However, 
-bmpanel will try to search for them in X server's font paths. In themes
-I use DejaVuSans/14, it means bmpanel will look for DejaVuSans.ttf somewhere
-where your Xorg's fonts located. If you don't have DejaVuSans fonts, you
-should change them to what you have.
+As of version 0.9.16 bmpanel uses fontconfig font searching style. For
+more info please see: http://fontconfig.org/fontconfig-user.html
 
 Themes documentation currently available at page: http://nsf.110mb.com/bmpanel 
