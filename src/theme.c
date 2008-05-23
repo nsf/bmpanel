@@ -510,7 +510,7 @@ static Imlib_Font load_font(const char *pattern)
 		return 0;
 	}
 	if (strcasecmp(stmp, ".ttf") != 0) {
-		LOG_WARNING("only ttf files supported");
+		LOG_WARNING("only ttf files are supported");
 		return 0;
 	}
 	*stmp = '\0';

@@ -983,6 +983,18 @@ static void handle_property_notify(Window win, Atom a)
 		commence_taskbar_redraw = 1;
 		return;
 	}
+
+	if (a == X.atoms[XATOM_NET_WM_ICON] ||
+	    a == XA_WM_HINTS) 
+	{
+		if (t->icon && t->icon != P.theme->taskbar.default_icon_img) {
+			imlib_context_set_image(t->icon);
+			imlib_free_image();
+		}
+		t->icon = get_window_icon(t->win);
+		commence_taskbar_redraw = 1;
+		return;
+	}
 }
 
 static void handle_button(int x, int y, int button)
