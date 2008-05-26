@@ -99,6 +99,7 @@ struct theme {
 	int tray_icon_h;
 	int tray_space_gap;
 	int tray_icons_spacing;
+	int use_composite;
 
 	/* elements */
 	struct clock_theme clock;

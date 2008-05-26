@@ -75,7 +75,7 @@ def check_pkg_config(context, version):
 	context.Result(ret)
 	return ret
 
-def check_pkg(context, name, version):
+def check_pkgv(context, name, version):
 	context.Message('Checking for %s... ' % name)
 	ret = context.TryAction('pkg-config --exists %s --atleast-version=%s' % (name, version))[0]
 	context.Result(ret)
@@ -83,9 +83,18 @@ def check_pkg(context, name, version):
 		append_lib_flags(context, name)
 	return ret
 
+def check_pkg(context, name):
+	context.Message('Checking for %s... ' % name)
+	ret = context.TryAction('pkg-config --exists %s' % name)[0]
+	context.Result(ret)
+	if ret:
+		append_lib_flags(context, name)
+	return ret
+
 def create_configure():
 	tests = {'check_pkg_config' : check_pkg_config,
-		 'check_pkg' : check_pkg}
+		 'check_pkg' : check_pkg,
+		 'check_pkgv' : check_pkgv}
 
 	conf = env.Configure(custom_tests = tests)
 	return conf
@@ -124,12 +133,20 @@ if not 'install' in COMMAND_LINE_TARGETS:
 		print_not_found_error('pkg-config')
 		Exit(1)
 
-	if not conf.check_pkg('imlib2', '1.4.0'):
+	if not conf.check_pkgv('imlib2', '1.4.0'):
 		print_not_found_error('imlib2 >= 1.4.0')
 		Exit(1)
 
-	if not conf.check_pkg('fontconfig', '2.0.0'):
-		print_not_found_error('fontconfig >= 2.0.0')
+	if not conf.check_pkg('fontconfig'):
+		print_not_found_error('fontconfig')
+		Exit(1)
+	
+	if not conf.check_pkg('xrender'):
+		print_not_found_error('xrender')
+		Exit(1)
+	
+	if not conf.check_pkg('xcomposite'):
+		print_not_found_error('xcomposite')
 		Exit(1)
 
 

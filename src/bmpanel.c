@@ -14,6 +14,8 @@
 #include <ev.h>
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
+#include <X11/extensions/Xrender.h>
+#include <X11/extensions/Xcomposite.h>
 #include "logger.h"
 #include "theme.h"
 #include "render.h"
@@ -106,6 +108,11 @@ static struct {
 	int wa_h;
 
 	Visual *visual;
+	Colormap colmap;
+	XSetWindowAttributes attrs;
+	uint32_t amask;
+	int depth;
+
 	Window root;
 	Atom atoms[XATOM_COUNT];
 	Atom trayselatom;
@@ -352,6 +359,57 @@ static char *alloc_window_name(Window win)
   creating panel window
 **************************************************************************/
 
+static Visual *find_argb_visual()
+{
+	XVisualInfo *xvi;
+	XVisualInfo template;
+	int nvi, i;
+	XRenderPictFormat *format;
+	Visual *visual;
+	
+	template.screen = X.screen;
+	template.depth = 32;
+	template.class = TrueColor;
+	xvi = XGetVisualInfo(X.display,
+			     VisualScreenMask |
+			     VisualDepthMask |
+			     VisualClassMask,
+			     &template,
+			     &nvi);
+	if (xvi == 0)
+		return 0;
+	
+	visual = 0;
+	for (i = 0; i < nvi; i++) {
+		format = XRenderFindVisualFormat(X.display, xvi[i].visual);
+		if (format->type == PictTypeDirect && format->direct.alphaMask) {
+			visual = xvi[i].visual;
+			break;
+		}
+	}
+
+	XFree(xvi);
+	return visual;
+}
+
+static void setup_composite()
+{
+	Visual *argbv = find_argb_visual();
+	if (!argbv) {
+		LOG_WARNING("argb visual not found, disabling composite");
+		P.theme->use_composite = 0;
+		return;
+	}
+	X.visual = argbv;
+	X.colmap = XCreateColormap(X.display, X.root, X.visual, AllocNone);
+	X.attrs.override_redirect = 1;
+	X.attrs.background_pixel = 0x0;
+	X.attrs.colormap = X.colmap;
+	X.attrs.border_pixel = 0;
+	X.amask = CWBackPixel | CWColormap | CWOverrideRedirect | CWBorderPixel;
+	X.depth = 32;
+}
+
 static Window create_panel_window(uint placement, int h)
 {
 	Window win;
@@ -367,7 +425,8 @@ static Window create_panel_window(uint placement, int h)
 		y = X.wa_y + X.wa_h - h;
 
 	win = XCreateWindow(X.display, X.root, X.wa_x, y, X.wa_w, h, 0, 
-			CopyFromParent, InputOutput, X.visual, 0, 0);
+			X.depth, InputOutput, X.visual, X.amask, &X.attrs);
+
 	XSelectInput(X.display, win, ButtonPressMask | ExposureMask | StructureNotifyMask);
 	/* get our place on desktop */
 	XChangeProperty(X.display, win, X.atoms[XATOM_NET_WM_STRUT], XA_CARDINAL, 32,
@@ -382,7 +441,6 @@ static Window create_panel_window(uint placement, int h)
 	tmp = X.atoms[XATOM_NET_WM_WINDOW_TYPE_DOCK];
 	XChangeProperty(X.display, win, X.atoms[XATOM_NET_WM_WINDOW_TYPE], XA_ATOM, 32,
 			PropModeReplace, (uchar*)&tmp, 1);
-
 	
 	/* place window on it's position */
 	XSizeHints size_hints;
@@ -408,10 +466,10 @@ static Window create_panel_window(uint placement, int h)
 	struct mwmhints mwm = {MWM_HINTS_DECORATIONS,0,0,0,0};
 	XChangeProperty(X.display, win, X.atoms[XATOM_MOTIF_WM_HINTS], X.atoms[XATOM_MOTIF_WM_HINTS], 
 			32, PropModeReplace, (uchar*)&mwm, sizeof(struct mwmhints) / 4);
-
+	
 	XMapWindow(X.display, win);
 	XFlush(X.display);
-	
+
 	/* also send message to wm (fluxbox bug?) */
 	{
 		XClientMessageEvent cli;
@@ -1090,7 +1148,11 @@ static void initX()
 	X.screen_width 	= DisplayWidth(X.display, X.screen);
 	X.screen_height	= DisplayHeight(X.display, X.screen);
 	X.visual 	= DefaultVisual(X.display, X.screen);
+	X.colmap	= CopyFromParent;
 	X.root 		= RootWindow(X.display, X.screen);
+	X.attrs 	= (XSetWindowAttributes){0};
+	X.amask		= 0;
+	X.depth 	= DefaultDepth(X.display, X.screen);
 	X.wa_x 		= 0;
 	X.wa_y 		= 0;
 	X.wa_w 		= X.screen_width;
@@ -1141,10 +1203,18 @@ validation:
 	if (!theme_is_valid(P.theme))
 		LOG_ERROR("invalid theme: %s", theme);
 
+	/* setup composite if necessary */
+	if (P.theme->use_composite)
+		setup_composite();
+
 	/* create panel window */
 	P.win = create_panel_window(P.theme->placement, P.theme->height);
-	
+
+	if (P.theme->use_composite)
+		XCompositeRedirectSubwindows(X.display, P.win, CompositeRedirectAutomatic);
+
 	/* set window bg */
+	/*
 	Pixmap tile, mask;
 	imlib_context_set_display(X.display);
 	imlib_context_set_visual(X.visual);
@@ -1153,6 +1223,7 @@ validation:
 	imlib_render_pixmaps_for_whole_image(&tile, &mask);
 	P.bgpix = tile;
 	XSetWindowBackgroundPixmap(X.display, P.win, P.bgpix);
+	*/
 
 	/* init tray if needed */
 	if (is_element_in_theme(P.theme, 't'))
@@ -1380,7 +1451,7 @@ int main(int argc, char **argv)
 
 	initX();
 	initP(theme);
-	init_render(P.theme, X.display, P.win, X.wa_w);
+	init_render(P.theme, X.display, P.win, X.visual, X.colmap, X.wa_w);
 
 	signal(SIGHUP, sighup_handler);
 	signal(SIGINT, sigint_handler);

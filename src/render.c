@@ -18,9 +18,20 @@ static uint bbwidth;
 static uint bbheight;
 static Imlib_Image bb;
 
+/* composite */
+static Imlib_Image bbcolor;
+static Imlib_Image bbalpha;
+static Pixmap pixcolor;
+static Pixmap pixalpha;
+static Picture piccolor;
+static Picture picalpha;
+
+static Picture rootpic;
+
 static Display *bbdpy;
 static Visual *bbvis;
 static Drawable bbwin;
+static Colormap bbcm;
 
 static struct theme *theme;
 
@@ -52,7 +63,7 @@ static void draw_image(Imlib_Image img, int ox)
 		return;
 	int curw = get_image_width(img);
 	imlib_context_set_image(bb);
-	imlib_blend_image_onto_image(img, 0,
+	imlib_blend_image_onto_image(img, 1,
 			0, 0, curw, theme->height,
 			ox, 0, curw, theme->height);
 }
@@ -67,7 +78,7 @@ static void tile_image(Imlib_Image img, int ox, int width)
 		if (width < 0)
 			curw += width;
 	
-		imlib_blend_image_onto_image(img, 0,
+		imlib_blend_image_onto_image(img, 1,
 				0, 0, curw, theme->height,
 				ox, 0, curw, theme->height);
 		ox += curw;
@@ -486,8 +497,10 @@ void render_taskbar(struct task *tasks, struct desktop *desktops)
 				x += theme->taskbar.icon_offset_x;
 				w -= theme->taskbar.icon_offset_x;
 				imlib_context_set_image(bb);
+				imlib_context_set_blend(1);
 				imlib_blend_image_onto_image(t->icon, 1, 0, 0, srcw, srch,
 						x, y, theme->taskbar.icon_w, theme->taskbar.icon_h);
+				imlib_context_set_blend(0);
 				x += theme->taskbar.icon_w;
 				w -= theme->taskbar.icon_w;
 			}
@@ -511,17 +524,40 @@ void render_taskbar(struct task *tasks, struct desktop *desktops)
   general render stuff
 **************************************************************************/
 
-void init_render(struct theme *t, Display *dpy, Drawable drawable, uint width)
+void init_render(struct theme *t, Display *dpy, Drawable drawable, Visual *vis, Colormap cm, uint width)
 {
 	bbwidth = width;
 	bbheight = t->height;
 	bb = imlib_create_image(bbwidth, bbheight);
+	imlib_context_set_image(bb);
+	imlib_image_set_has_alpha(1);
 	bbdpy = dpy;
-	bbvis = DefaultVisual(dpy, DefaultScreen(dpy));
+	bbvis = vis;
 	bbwin = drawable;
+	bbcm = cm;
+	if (t->use_composite) {
+		XRenderPictFormat *fmt = XRenderFindStandardFormat(bbdpy, PictStandardARGB32);
+		bbcolor = imlib_create_image(bbwidth, bbheight);
+		bbalpha = imlib_create_image(bbwidth, bbheight);
+
+		pixcolor = XCreatePixmap(bbdpy, bbwin, bbwidth, bbheight, 32);
+		pixalpha = XCreatePixmap(bbdpy, bbwin, bbwidth, bbheight, 32);
+
+		piccolor = XRenderCreatePicture(bbdpy, pixcolor, fmt, 0, 0);
+		picalpha = XRenderCreatePicture(bbdpy, pixalpha, fmt, 0, 0);
+	
+		XRenderPictureAttributes pwin;
+		pwin.subwindow_mode = IncludeInferiors;
+		rootpic = XRenderCreatePicture(bbdpy, bbwin, XRenderFindVisualFormat(bbdpy, bbvis), 
+				CPSubwindowMode, &pwin);
+		
+	}
+
 	imlib_context_set_display(bbdpy);
 	imlib_context_set_visual(bbvis);
-	imlib_context_set_drawable(bbwin);
+	imlib_context_set_colormap(bbcm);
+	imlib_context_set_blend(0);
+	imlib_context_set_operation(IMLIB_OP_COPY);
 	theme = t;
 }
 
@@ -529,6 +565,19 @@ void shutdown_render()
 {
 	imlib_context_set_image(bb);
 	imlib_free_image();
+
+	if (theme->use_composite) {
+		imlib_context_set_image(bbcolor);
+		imlib_free_image();
+		imlib_context_set_image(bbalpha);
+		imlib_free_image();
+
+		XRenderFreePicture(bbdpy, rootpic);
+		XRenderFreePicture(bbdpy, piccolor);
+		XRenderFreePicture(bbdpy, picalpha);
+		XFreePixmap(bbdpy, pixcolor);
+		XFreePixmap(bbdpy, pixalpha);
+	}
 }
 
 void render_update_panel_positions(struct panel *p)
@@ -626,9 +675,34 @@ void render_panel(struct panel *p)
 
 void render_present()
 {
-	imlib_context_set_display(bbdpy);
-	imlib_context_set_visual(bbvis);
-	imlib_context_set_drawable(bbwin);
-	imlib_context_set_image(bb);
-	imlib_render_image_on_drawable(0,0);
+	if (theme->use_composite) {
+		/* copy color part to bbcolor */
+		imlib_context_set_image(bbcolor);
+		imlib_image_set_has_alpha(1);
+		imlib_context_set_color(0,0,0,255);
+		imlib_image_fill_rectangle(0,0,bbwidth,bbheight);
+		imlib_blend_image_onto_image(bb,0,0,0,bbwidth,bbheight,0,0,bbwidth,bbheight);
+		imlib_context_set_drawable(pixcolor);
+		imlib_render_image_on_drawable(0,0);
+
+
+		/* copy alpha part to bbalpha */
+		imlib_context_set_image(bbalpha);
+		imlib_context_set_drawable(pixalpha);
+		imlib_image_copy_alpha_to_image(bb,0,0);
+		imlib_image_set_has_alpha(1);
+		imlib_render_image_on_drawable(0,0);
+			
+		XRenderComposite(bbdpy,
+				 PictOpSrc,
+				 piccolor,
+				 picalpha,
+				 rootpic,
+				 0, 0, 0, 0, 0, 0, bbwidth, 
+				 bbheight);
+	} else {
+		imlib_context_set_drawable(bbwin);
+		imlib_context_set_image(bb);
+		imlib_render_image_on_drawable(0,0);
+	}
 }

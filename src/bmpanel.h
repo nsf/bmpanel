@@ -6,6 +6,7 @@
 #define BMPANEL_BMPANEL_H
 
 #include <X11/Xlib.h>
+#include <X11/extensions/Xrender.h>
 #include <Imlib2.h>
 #include "common.h"
 
@@ -44,6 +45,8 @@ struct panel {
 	struct tray *trayicons;
 	Window trayselowner;
 	Pixmap bgpix;
+
+	Picture rootpix;
 };
 
 #endif
