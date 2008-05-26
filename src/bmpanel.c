@@ -402,7 +402,7 @@ static void setup_composite()
 	}
 	X.visual = argbv;
 	X.colmap = XCreateColormap(X.display, X.root, X.visual, AllocNone);
-	X.attrs.override_redirect = 1;
+	X.attrs.override_redirect = 0;
 	X.attrs.background_pixel = 0x0;
 	X.attrs.colormap = X.colmap;
 	X.attrs.border_pixel = 0;
@@ -414,13 +414,13 @@ static Window create_panel_window(uint placement, int h)
 {
 	Window win;
 	int y = 0;
-	uint32_t strut[4] = {0,0,0,h};
+	uint32_t strut[4] = {0,0,0,h + X.screen_height - X.wa_h};
 	uint32_t tmp;
 
 	if (placement == PLACE_TOP) {
 		y = X.wa_y;
 		strut[3] = 0;
-		strut[2] = h;
+		strut[2] = h + X.wa_y;
 	} else if (placement == PLACE_BOTTOM)
 		y = X.wa_y + X.wa_h - h;
 
@@ -1212,18 +1212,17 @@ validation:
 
 	if (P.theme->use_composite)
 		XCompositeRedirectSubwindows(X.display, P.win, CompositeRedirectAutomatic);
-
-	/* set window bg */
-	/*
-	Pixmap tile, mask;
-	imlib_context_set_display(X.display);
-	imlib_context_set_visual(X.visual);
-	imlib_context_set_drawable(P.win);
-	imlib_context_set_image(P.theme->tile_img);
-	imlib_render_pixmaps_for_whole_image(&tile, &mask);
-	P.bgpix = tile;
-	XSetWindowBackgroundPixmap(X.display, P.win, P.bgpix);
-	*/
+	if (!P.theme->use_composite) {
+		/* set window bg */
+		Pixmap tile, mask;
+		imlib_context_set_display(X.display);
+		imlib_context_set_visual(X.visual);
+		imlib_context_set_drawable(P.win);
+		imlib_context_set_image(P.theme->tile_img);
+		imlib_render_pixmaps_for_whole_image(&tile, &mask);
+		P.bgpix = tile;
+		XSetWindowBackgroundPixmap(X.display, P.win, P.bgpix);
+	}
 
 	/* init tray if needed */
 	if (is_element_in_theme(P.theme, 't'))
@@ -1242,7 +1241,8 @@ static void freeP()
 	free_theme(P.theme);
 	free_tasks();
 	free_desktops();
-	imlib_free_pixmap_and_mask(P.bgpix);
+	if (!P.theme->use_composite)
+		imlib_free_pixmap_and_mask(P.bgpix);
 	XDestroyWindow(X.display, P.win);
 }
 
