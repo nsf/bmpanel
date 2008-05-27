@@ -394,6 +394,19 @@ static Visual *find_argb_visual()
 
 static void setup_composite()
 {
+	int eventb, errorb;
+	if (XCompositeQueryExtension(X.display, &eventb, &errorb) == False) {
+		LOG_WARNING("composite extension isn't available on server, disabling composite");
+		P.theme->use_composite = 0;
+		return;
+	}
+
+	if (XRenderQueryExtension(X.display, &eventb, &errorb) == False) {
+		LOG_WARNING("render extension isn't available on server, disabling composite");
+		P.theme->use_composite = 0;
+		return;
+	}
+
 	Visual *argbv = find_argb_visual();
 	if (!argbv) {
 		LOG_WARNING("argb visual not found, disabling composite");
