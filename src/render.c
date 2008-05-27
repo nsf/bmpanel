@@ -359,6 +359,7 @@ void render_switcher(struct desktop *desktops)
 	if (!desktops)
 		return;
 	int ox = switcher_pos;
+	int cornerw;
 	ox += theme->switcher.space_gap;
 	uint state;
 	struct desktop *iter = desktops;
@@ -367,10 +368,12 @@ void render_switcher(struct desktop *desktops)
 		draw_switcher_alone(state, ox, iter->width);
 	else 
 		draw_switcher_left_corner(state, ox, iter->width);
-	draw_text(theme->switcher.font, theme->switcher.text_align, ox, iter->width,
+	cornerw = get_image_width(theme->switcher.left_corner_img[state]);
+	ox += cornerw;
+	draw_text(theme->switcher.font, theme->switcher.text_align, ox, iter->width - cornerw,
 			theme->switcher.text_offset_x, theme->switcher.text_offset_y,
 			iter->name, &theme->switcher.text_color[state]);
-	ox += iter->width;
+	ox += iter->width - cornerw;
 
 	if (!iter->next)
 		return;
@@ -394,9 +397,10 @@ void render_switcher(struct desktop *desktops)
 			ox += get_image_width(theme->switcher.separator_img);
 		}
 	}
-	
+
+	cornerw = get_image_width(theme->switcher.right_corner_img[state]);
 	draw_switcher_right_corner(state, ox, iter->width);
-	draw_text(theme->switcher.font, theme->switcher.text_align, ox, iter->width,
+	draw_text(theme->switcher.font, theme->switcher.text_align, ox, iter->width - cornerw,
 			theme->switcher.text_offset_x, theme->switcher.text_offset_y,
 			iter->name, &theme->switcher.text_color[state]);
 }

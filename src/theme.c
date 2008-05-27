@@ -268,6 +268,8 @@ static int parse_key_value(const char *key, const char *value, struct theme *t)
 		PARSE_INT(t->tray_icons_spacing);
 	} ECMP("use_composite") {
 		PARSE_INT(t->use_composite);
+	} ECMP("height_override") {
+		PARSE_INT(t->height_override);
 	/* ---------------------------- clock ----------------------- */
 	} ECMP("clock_right_img") {
 		SAFE_LOAD_IMAGE(t->clock.right_img);

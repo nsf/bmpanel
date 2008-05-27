@@ -100,6 +100,7 @@ struct theme {
 	int tray_space_gap;
 	int tray_icons_spacing;
 	int use_composite;
+	int height_override;
 
 	/* elements */
 	struct clock_theme clock;

@@ -410,17 +410,19 @@ static void setup_composite()
 	X.depth = 32;
 }
 
-static Window create_panel_window(uint placement, int h)
+static Window create_panel_window(uint placement, int h, int hover)
 {
 	Window win;
+	if (!hover)
+		hover = h;
 	int y = 0;
-	uint32_t strut[4] = {0,0,0,h + X.screen_height - X.wa_h};
+	uint32_t strut[4] = {0,0,0,hover + X.screen_height - X.wa_h};
 	uint32_t tmp;
 
 	if (placement == PLACE_TOP) {
 		y = X.wa_y;
 		strut[3] = 0;
-		strut[2] = h + X.wa_y;
+		strut[2] = hover + X.wa_y;
 	} else if (placement == PLACE_BOTTOM)
 		y = X.wa_y + X.wa_h - h;
 
@@ -1208,7 +1210,7 @@ validation:
 		setup_composite();
 
 	/* create panel window */
-	P.win = create_panel_window(P.theme->placement, P.theme->height);
+	P.win = create_panel_window(P.theme->placement, P.theme->height, P.theme->height_override);
 
 	if (P.theme->use_composite)
 		XCompositeRedirectSubwindows(X.display, P.win, CompositeRedirectAutomatic);
