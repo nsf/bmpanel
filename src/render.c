@@ -607,6 +607,7 @@ void render_update_panel_positions(struct panel *p)
 		/* tray */
 		case 't':
 			if (!p->trayicons) {
+				/* we're skipping if no tray icons here, separator is being drawn only once */
 				e++;
 				continue;
 			}
@@ -640,6 +641,7 @@ void render_update_panel_positions(struct panel *p)
 		/* tray */
 		case 't':
 			if (!p->trayicons) {
+				/* we're skipping if no tray icons here, separator is being drawn only once */
 				e++;
 				continue;
 			}
@@ -662,27 +664,28 @@ void render_panel(struct panel *p)
 	char *e = theme->elements;
 	while (*e) {
 		switch (*e) {
-			case 'c':
-				render_clock();
-				ox += clock_width;
-				break;
-			case 's':
-				render_switcher(p->desktops);
-				ox += switcher_width;
-				break;
-			case 't':
-				if (!p->trayicons) {
-					e++;
-					continue;
-				}
-				if (tray_width)
-					tile_image(theme->tile_img, tray_pos, tray_width);
-				ox += tray_width;
-				break;
-			case 'b':
-				render_taskbar(p->tasks, p->desktops);
-				ox += taskbar_width;
-				break;
+		case 'c':
+			render_clock();
+			ox += clock_width;
+			break;
+		case 's':
+			render_switcher(p->desktops);
+			ox += switcher_width;
+			break;
+		case 't':
+			if (!p->trayicons) {
+				/* we're skipping if no tray icons here, separator is being drawn only once */
+				e++;
+				continue;
+			}
+			if (tray_width)
+				tile_image(theme->tile_img, tray_pos, tray_width);
+			ox += tray_width;
+			break;
+		case 'b':
+			render_taskbar(p->tasks, p->desktops);
+			ox += taskbar_width;
+			break;
 		}
 		if (*++e && theme->separator_img) {
 			draw_image(theme->separator_img, ox);
@@ -695,6 +698,16 @@ void render_panel(struct panel *p)
 void render_present()
 {
 	if (theme->use_composite) {
+		/* 
+		 * Because XRender can't do directly SRCc * SRCa + DSTc * (1 - SRCa) blending,
+		 * I must apply SRCa to my SRCc manually. To do this I'm using PictOpSrc with 
+		 * alpha channel in mask. So, I need to copy RGB data to one buffer (color) and 
+		 * Alpha to another buffer (mask), then use them in XRenderComposite.
+		 *
+		 * But I think in can be done on theme loading stage. Just apply SRCa to SRCc 
+		 * immediately. Optimization?
+		 */
+
 		/* copy color part to bbcolor */
 		imlib_context_set_image(bbcolor);
 		imlib_image_set_has_alpha(1);
@@ -703,7 +716,6 @@ void render_present()
 		imlib_blend_image_onto_image(bb,0,0,0,bbwidth,bbheight,0,0,bbwidth,bbheight);
 		imlib_context_set_drawable(pixcolor);
 		imlib_render_image_on_drawable(0,0);
-
 
 		/* copy alpha part to bbalpha */
 		imlib_context_set_image(bbalpha);
