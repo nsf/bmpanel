@@ -141,6 +141,10 @@ if not 'install' in COMMAND_LINE_TARGETS:
 		print_not_found_error('fontconfig')
 		Exit(1)
 	
+	if not conf.check_pkg('x11'):
+		print_not_found_error('fontconfig')
+		Exit(1)
+	
 	if not conf.check_pkg('xrender'):
 		print_not_found_error('xrender')
 		Exit(1)

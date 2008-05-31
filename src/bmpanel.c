@@ -663,9 +663,6 @@ static void add_task(Window win, uint focused)
 	t->focused = focused;
 	t->icon = get_window_icon(win);
 
-	if (t->desktop == -1)
-		LOG_DEBUG("task: %s", t->name);
-
 	XSelectInput(X.display, win, PropertyChangeMask | 
 			FocusChangeMask | StructureNotifyMask);
 
