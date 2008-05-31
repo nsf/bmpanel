@@ -437,7 +437,7 @@ static Window create_panel_window(uint placement, int h, int hover)
 		strut[3] = 0;
 		strut[2] = hover + X.wa_y;
 	} else if (placement == PLACE_BOTTOM)
-		y = X.wa_y + X.wa_h - hover;
+		y = X.wa_y + X.wa_h - h;
 
 	win = XCreateWindow(X.display, X.root, X.wa_x, y, X.wa_w, h, 0, 
 			X.depth, InputOutput, X.visual, X.amask, &X.attrs);
