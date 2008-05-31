@@ -3,6 +3,9 @@ REQUIREMENTS ------------
  - imlib2
  - freetype2
  - Xlib
+ - XRender
+ - XComposite
+ - fontconfig
  - libev
  - scons and gcc 4.x.x to compile library (tested on gcc 4.2.3)
 

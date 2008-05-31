@@ -125,7 +125,7 @@ static int commence_panel_redraw;
 static int commence_switcher_redraw;
 
 static const char *theme = "native";
-static const char *version = "bmpanel version 0.9.19";
+static const char *version = "bmpanel version 0.9.20";
 static const char *usage = "usage: bmpanel [--version] [--help] [--usage] [--list] THEME";
 
 static void cleanup();
@@ -429,7 +429,7 @@ static Window create_panel_window(uint placement, int h, int hover)
 	if (!hover)
 		hover = h;
 	int y = 0;
-	uint32_t strut[4] = {0,0,0,hover + X.screen_height - X.wa_h};
+	uint32_t strut[4] = {0,0,0,hover + X.screen_height - X.wa_h - X.wa_y};
 	uint32_t tmp;
 
 	if (placement == PLACE_TOP) {
@@ -437,7 +437,7 @@ static Window create_panel_window(uint placement, int h, int hover)
 		strut[3] = 0;
 		strut[2] = hover + X.wa_y;
 	} else if (placement == PLACE_BOTTOM)
-		y = X.wa_y + X.wa_h - h;
+		y = X.wa_y + X.wa_h - hover;
 
 	win = XCreateWindow(X.display, X.root, X.wa_x, y, X.wa_w, h, 0, 
 			X.depth, InputOutput, X.visual, X.amask, &X.attrs);
@@ -1237,6 +1237,11 @@ validation:
 		imlib_render_pixmaps_for_whole_image(&tile, &mask);
 		P.bgpix = tile;
 		XSetWindowBackgroundPixmap(X.display, P.win, P.bgpix);
+	}
+
+	if (P.theme->use_composite && is_element_in_theme(P.theme, 't')) {
+		LOG_WARNING("tray cannot be used with composite mode enabled");
+		theme_remove_element(P.theme, 't');
 	}
 
 	/* init tray if needed */

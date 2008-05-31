@@ -606,6 +606,10 @@ void render_update_panel_positions(struct panel *p)
 			break;
 		/* tray */
 		case 't':
+			if (!p->trayicons) {
+				e++;
+				continue;
+			}
 			ox += get_tray_width(p->trayicons);
 			break;
 		/* taskbar */
@@ -635,6 +639,10 @@ void render_update_panel_positions(struct panel *p)
 			break;
 		/* tray */
 		case 't':
+			if (!p->trayicons) {
+				e++;
+				continue;
+			}
 			ox += update_tray_positions(ox, p->trayicons);
 			break;
 		/* taskbar */
@@ -642,9 +650,9 @@ void render_update_panel_positions(struct panel *p)
 			ox += update_taskbar_positions(taskbarx, taskbarw, p->tasks, p->desktops);
 			break;
 		}
-		e++;
-		if (theme->separator_img)
+		if (*++e && theme->separator_img) {
 			ox += get_image_width(theme->separator_img);
+		}
 	}
 }
 
@@ -663,6 +671,10 @@ void render_panel(struct panel *p)
 				ox += switcher_width;
 				break;
 			case 't':
+				if (!p->trayicons) {
+					e++;
+					continue;
+				}
 				if (tray_width)
 					tile_image(theme->tile_img, tray_pos, tray_width);
 				ox += tray_width;
@@ -672,8 +684,7 @@ void render_panel(struct panel *p)
 				ox += taskbar_width;
 				break;
 		}
-		e++;
-		if (*e && theme->separator_img) {
+		if (*++e && theme->separator_img) {
 			draw_image(theme->separator_img, ox);
 			ox += get_image_width(theme->separator_img);
 		}

@@ -3,7 +3,6 @@ author 				nsf <no.smile.face@gmail.com>
 version_major 			0
 version_minor 			3
 
-use_composite 			1
 placement 			bottom
 tile_img 			tile_img.png
 separator_img 			separator_img.png
