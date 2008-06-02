@@ -14,7 +14,6 @@
 #include <ev.h>
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
-#include <X11/extensions/Xrender.h>
 #include <X11/extensions/Xcomposite.h>
 #include "logger.h"
 #include "theme.h"
@@ -864,6 +863,7 @@ static void add_tray_icon(Window win)
 {
 	/* reparent, do all embed stuff */
 	struct tray *t = XMALLOCZ(struct tray, 1);
+
 	t->win = win;
 	
 	/* listen necessary events */

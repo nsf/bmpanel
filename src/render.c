@@ -719,11 +719,11 @@ void render_present()
 
 		/* copy alpha part to bbalpha */
 		imlib_context_set_image(bbalpha);
-		imlib_context_set_drawable(pixalpha);
 		imlib_image_copy_alpha_to_image(bb,0,0);
 		imlib_image_set_has_alpha(1);
+		imlib_context_set_drawable(pixalpha);
 		imlib_render_image_on_drawable(0,0);
-			
+
 		XRenderComposite(bbdpy,
 				 PictOpSrc,
 				 piccolor,
