@@ -43,8 +43,6 @@ struct panel {
 	struct tray *trayicons;
 	Window trayselowner;
 	Pixmap bgpix;
-
-	Picture rootpix;
 };
 
 #endif
