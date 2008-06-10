@@ -1,0 +1,133 @@
+#!/bin/bash
+
+# bmpanel configuration script
+
+#----------------------------------------------------------------------------
+# help message
+#----------------------------------------------------------------------------
+help() {
+	echo "options:"
+	echo -e " --help\t\t\t- print this help and exit"
+	echo -e " --prefix=<path>\t- specify install path. "
+	echo -e " \t\t\t\tdefault <path> is /usr"
+	echo -e " --debug\t\t- enable debug mode"
+	echo -e " --optimize\t\t- extra optimizations (-mtune=native -march=native)"
+	echo -e " --ugly\t\t\t- enable ugly verbose mode"
+}
+
+#----------------------------------------------------------------------------
+# globals
+#----------------------------------------------------------------------------
+CFLAGS=
+LIBS=-lev
+
+#----------------------------------------------------------------------------
+# helper functions
+#----------------------------------------------------------------------------
+append_libs_and_cflags() {
+	local PACKAGE=$1
+	CFLAGS="${CFLAGS} `pkg-config --cflags ${PACKAGE}`"
+	LIBS="${LIBS} `pkg-config --libs ${PACKAGE}`"
+}
+
+check_pkg_version() {
+	local PACKAGE=$1
+	local VERSION=$2
+	echo -n "checking for $PACKAGE >= $VERSION... "
+	if ! (pkg-config --exists --atleast-version=${VERSION} ${PACKAGE}); then
+		echo "no"
+		exit 1
+	fi
+	echo "yes"
+	append_libs_and_cflags $PACKAGE
+}
+
+check_pkg() {
+	local PACKAGE=$1
+	echo -n "checking for $PACKAGE... "
+	if ! (pkg-config --exists ${PACKAGE}); then
+		echo "no"
+		exit 1
+	fi
+	echo "yes"
+	append_libs_and_cflags $PACKAGE
+}
+
+#----------------------------------------------------------------------------
+# parse command line options
+#----------------------------------------------------------------------------
+PREFIX="/usr"
+DEBUG=0
+OPTIMIZE=0
+UGLY=0
+
+while [ $# -gt 0 ]; do
+	case $1 in
+		--help)
+			help
+			exit 0
+			;;
+		--prefix=*)
+			PREFIX=`echo $1 | sed 's/--prefix=//'`
+			;;
+		--debug)
+			DEBUG=1
+			;;
+		--optimize)
+			OPTIMIZE=1
+			;;
+		--ugly)
+			UGLY=1
+			;;
+		*)
+			echo "unknown option $1"
+			help
+			exit 1
+			;;
+	esac
+	shift
+done
+
+#----------------------------------------------------------------------------
+# general flow
+#----------------------------------------------------------------------------
+echo "checking for installed devel packages"
+check_pkg_version imlib2 1.4.0
+check_pkg x11
+check_pkg xrender
+check_pkg xcomposite
+check_pkg fontconfig
+
+echo "setting up CFLAGS"
+if [ $DEBUG -eq 1 ]; then
+	CFLAGS="$CFLAGS -g -O0"
+	echo "debug mode enabled"
+else
+	echo "release mode" enabled
+	CFLAGS="$CFLAGS -O2"
+	if [ $OPTIMIZE -eq 1 ]; then
+		echo "+ additional optimizations"
+		CFLAGS="$CFLAGS -mtune=native -march=native"
+	fi
+fi
+
+CFLAGS="$CFLAGS -DPREFIX=\\\\\\\"$PREFIX\\\\\\\""
+
+CFLAGS=`echo $CFLAGS | xargs`
+LIBS=`echo $LIBS | xargs`
+
+echo "--- summary ---"
+echo "CFLAGS: $CFLAGS"
+echo "LIBS: $LIBS"
+echo "PREFIX: $PREFIX"
+echo "DEBUG: $DEBUG"
+echo "OPTIMIZE: $OPTIMIZE"
+echo "---------------"
+
+echo "writing config.mk..."
+mkdir -p .mk
+echo "PREFIX:=$PREFIX" > .mk/config.mk
+echo "UGLY:=$UGLY" >> .mk/config.mk
+echo "DEBUG:=$DEBUG" >> .mk/config.mk
+echo "CFLAGS+=$CFLAGS" >> .mk/config.mk
+echo "LIBS+=$LIBS" >> .mk/config.mk

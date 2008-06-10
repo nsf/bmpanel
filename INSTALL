@@ -7,27 +7,24 @@ REQUIREMENTS ------------
  - XComposite
  - fontconfig
  - libev
- - scons and gcc 4.x.x to compile library (tested on gcc 4.2.3)
+ - make and gcc 4.x.x to compile library (tested on gcc 4.2.3)
 
 INSTALL -------
 
 Simple build & install (as not root user and with sudo installed, or
 simply run as root without sudo):
 
-scons && sudo scons install
+./configure && sudo make install
 
-Will install bmpanel to /usr/bin/panel and themes to
+Will install bmpanel to /usr/bin/bmpanel and themes to
 /usr/share/bmpanel/themes.  If you don't like default prefix for
 install, you can specify it like this:
 
-scons prefix=/usr/local && sudo scons install
+./configure --prefix=/usr/local && sudo make install
 
 for debug build use:
 
-scons debug=1 memdebug=1 && sudo scons install
-
-debug=1 currently does nothing memdebug=1 will enable special memory
-management and will help you to find memleaks (if any).
+./configure --debug && sudo make install
 
 RUNNING -------
 
