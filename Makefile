@@ -2,7 +2,7 @@ SRCDIR := src
 BUILDDIR := .mk/build
 
 # included from .mk/config.mk
-CFLAGS :=
+# CFLAGS :=
 LIBS :=
 
 # included from $(SRCDIR)/Makefile

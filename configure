@@ -104,10 +104,9 @@ if [ $DEBUG -eq 1 ]; then
 	echo "debug mode enabled"
 else
 	echo "release mode" enabled
-	CFLAGS="$CFLAGS -O2"
 	if [ $OPTIMIZE -eq 1 ]; then
 		echo "+ additional optimizations"
-		CFLAGS="$CFLAGS -mtune=native -march=native"
+		CFLAGS="$CFLAGS -O2 -mtune=native -march=native"
 	fi
 fi
 

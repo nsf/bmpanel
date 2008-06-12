@@ -18,6 +18,6 @@ ifeq ($(DEBUG),0)
 endif
 
 $(BUILDDIR)/src/%.o: src/%.c .mk/config.mk
-	$(V_C)$(CC) -c -MMD$(CFLAGS) $< -o $@
+	$(V_C)$(CC) -c -MMD $(CFLAGS) $< -o $@
 
 DEPS += $(patsubst %.o,%.d,$(OBJS))
