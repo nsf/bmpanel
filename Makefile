@@ -1,4 +1,5 @@
 SRCDIR := src
+BUILDDIR := .mk/build
 
 # included from .mk/config.mk
 CFLAGS :=
@@ -16,11 +17,12 @@ LD := gcc
 all: setup srcs
 
 clean:
-	rm -rf bmpanel
-	rm -R build
+	@echo cleaning...
+	@rm -rf bmpanel
+	@rm -R $(BUILDDIR)
 
 setup:
-	@mkdir -p build $(patsubst %,build/%,$(SRCDIR))
+	@mkdir -p $(BUILDDIR) $(patsubst %,$(BUILDDIR)/%,$(SRCDIR))
 
 .mk/config.mk:
 	./configure
