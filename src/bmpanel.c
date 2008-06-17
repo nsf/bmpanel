@@ -976,7 +976,9 @@ static void handle_configure_notify(Window win)
 		XWindowChanges wc;
 		wc.width = P.theme->tray_icon_w;
 		wc.height = P.theme->tray_icon_h;
-		XConfigureWindow(X.display, win, CWWidth | CWHeight, &wc);
+		wc.x = t->x;
+		wc.y = t->y;
+		XConfigureWindow(X.display, win, CWWidth | CWHeight | CWX | CWY, &wc);
 	}
 }
 

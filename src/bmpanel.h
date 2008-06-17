@@ -33,6 +33,8 @@ struct desktop {
 struct tray {
 	struct tray *next;
 	Window win;
+	int x;
+	int y;
 };
 
 struct panel {
