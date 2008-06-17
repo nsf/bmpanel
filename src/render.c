@@ -230,7 +230,8 @@ static int update_tray_positions(int ox, struct tray *trayicons)
 	while (iter) {
 		count++;
 		y = (theme->height - h) / 2;
-		XWindowAttributes xa = {0};
+		XWindowAttributes xa;
+		memset(&xa, 0, sizeof(xa));
 		XGetWindowAttributes(bbdpy, iter->win, &xa);
 		if (xa.x != ox || xa.width != w)
 			XMoveResizeWindow(bbdpy, iter->win, ox, y, w, h);

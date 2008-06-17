@@ -11,14 +11,15 @@ help() {
 	echo -e " --prefix=<path>\t- specify install path. "
 	echo -e " \t\t\t\tdefault <path> is /usr"
 	echo -e " --debug\t\t- enable debug mode"
-	echo -e " --optimize\t\t- extra optimizations (-O2 -mtune=native -march=native)"
+	echo -e " --mem-debug\t\t- become a memleak hunter"
+	echo -e " --optimize\t\t- extra optimizations (-O2 -march=native)"
 	echo -e " --ugly\t\t\t- enable ugly verbose mode"
 }
 
 #----------------------------------------------------------------------------
 # globals
 #----------------------------------------------------------------------------
-CFLAGS=
+CFLAGS="-Wall"
 LIBS=-lev
 
 #----------------------------------------------------------------------------
@@ -53,11 +54,21 @@ check_pkg() {
 	append_libs_and_cflags $PACKAGE
 }
 
+yes_no() {
+	local VAR=$1
+	if [ $VAR -eq 1 ]; then
+		echo "yes"
+	else
+		echo "no"
+	fi
+}
+
 #----------------------------------------------------------------------------
 # parse command line options
 #----------------------------------------------------------------------------
 PREFIX="/usr"
 DEBUG=0
+MEMDEBUG=0
 OPTIMIZE=0
 UGLY=0
 
@@ -72,6 +83,9 @@ while [ $# -gt 0 ]; do
 			;;
 		--debug)
 			DEBUG=1
+			;;
+		--mem-debug)
+			MEMDEBUG=1
 			;;
 		--optimize)
 			OPTIMIZE=1
@@ -98,15 +112,14 @@ check_pkg xrender
 check_pkg xcomposite
 check_pkg fontconfig
 
-echo "setting up CFLAGS"
 if [ $DEBUG -eq 1 ]; then
-	CFLAGS="$CFLAGS -g -O0"
-	echo "debug mode enabled"
+	CFLAGS="$CFLAGS -g -O0 -DLOG_ASSERT_ENABLED -DDEBUG"
+	if [ $MEMDEBUG -eq 1 ]; then
+		CFLAGS="$CFLAGS -DMEMDEBUG"
+	fi
 else
-	echo "release mode" enabled
 	if [ $OPTIMIZE -eq 1 ]; then
-		echo "+ additional optimizations"
-		CFLAGS="$CFLAGS -O2 -mtune=native -march=native"
+		CFLAGS="$CFLAGS -O2 -march=native"
 	fi
 fi
 
@@ -115,18 +128,23 @@ CFLAGS="$CFLAGS -DPREFIX=\\\\\\\"$PREFIX\\\\\\\""
 CFLAGS=`echo $CFLAGS | xargs`
 LIBS=`echo $LIBS | xargs`
 
-echo "--- summary ---"
-echo "CFLAGS: $CFLAGS"
-echo "LIBS: $LIBS"
-echo "PREFIX: $PREFIX"
-echo "DEBUG: $DEBUG"
-echo "OPTIMIZE: $OPTIMIZE"
-echo "---------------"
+echo ""
+echo "---------- summary ----------"
+echo "  CFLAGS : $CFLAGS"
+echo "    LIBS : $LIBS"
+echo "  PREFIX : $PREFIX"
+echo -n "   DEBUG : "; yes_no $DEBUG
+echo -n "MEMDEBUG : "; yes_no $MEMDEBUG
+echo -n "OPTIMIZE : "; yes_no $OPTIMIZE
+echo -n "    UGLY : "; yes_no $UGLY
+echo "-----------------------------"
+echo ""
 
-echo "writing config.mk..."
+echo "writing .mk/config.mk..."
 mkdir -p .mk
 echo "PREFIX:=$PREFIX" > .mk/config.mk
 echo "UGLY:=$UGLY" >> .mk/config.mk
 echo "DEBUG:=$DEBUG" >> .mk/config.mk
 echo "CFLAGS+=$CFLAGS" >> .mk/config.mk
 echo "LIBS+=$LIBS" >> .mk/config.mk
+echo "configure done"

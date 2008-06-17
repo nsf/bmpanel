@@ -1155,6 +1155,8 @@ static void initX()
 		LOG_ERROR("failed connect to X server");
 	XSetErrorHandler(X_error_handler);
 	XSetIOErrorHandler(X_io_error_handler);
+	
+	memset(&X.attrs, 0, sizeof(X.attrs));
 
 	/* useful variables */
 	X.screen 	= DefaultScreen(X.display);
@@ -1163,7 +1165,6 @@ static void initX()
 	X.visual 	= DefaultVisual(X.display, X.screen);
 	X.colmap	= CopyFromParent;
 	X.root 		= RootWindow(X.display, X.screen);
-	X.attrs 	= (XSetWindowAttributes){0};
 	X.amask		= 0;
 	X.depth 	= DefaultDepth(X.display, X.screen);
 	X.wa_x 		= 0;
@@ -1420,10 +1421,16 @@ static void init_and_start_ev_loop(int xfd)
 	ev_timer clock_redraw;
 	ev_io xconnection;
 
-	ev_io_init(&xconnection, xconnection_cb, xfd, EV_READ);
+	xconnection.active = xconnection.pending = xconnection.priority = 0;
+	ev_set_cb(&xconnection, xconnection_cb);
+
+	clock_redraw.active = clock_redraw.pending = clock_redraw.priority = 0;
+	ev_set_cb(&clock_redraw, clock_redraw_cb);
+
+	ev_io_set(&xconnection, xfd, EV_READ);
 	ev_io_start(el, &xconnection);
 
-    	ev_timer_init(&clock_redraw, clock_redraw_cb, 1.0, 1.0);
+	clock_redraw.at = clock_redraw.repeat = 1.0f;
  	ev_timer_start(el, &clock_redraw);
 
     	ev_loop(el, 0);
