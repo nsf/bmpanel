@@ -11,7 +11,7 @@ help() {
 	echo -e " --prefix=<path>\t- specify install path. "
 	echo -e " \t\t\t\tdefault <path> is /usr"
 	echo -e " --debug\t\t- enable debug mode"
-	echo -e " --optimize\t\t- extra optimizations (-mtune=native -march=native)"
+	echo -e " --optimize\t\t- extra optimizations (-O2 -mtune=native -march=native)"
 	echo -e " --ugly\t\t\t- enable ugly verbose mode"
 }
 
