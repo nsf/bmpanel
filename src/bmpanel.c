@@ -1423,18 +1423,18 @@ static void init_and_start_ev_loop(int xfd)
 	ev_timer clock_redraw;
 	ev_io xconnection;
 
+	/* macros?! whuut?! */
 	xconnection.active = xconnection.pending = xconnection.priority = 0;
-	ev_set_cb(&xconnection, xconnection_cb);
+	xconnection.cb = xconnection_cb;
+	xconnection.fd = xfd; 
+	xconnection.events = EV_READ | EV_IOFDSET;
 
 	clock_redraw.active = clock_redraw.pending = clock_redraw.priority = 0;
-	ev_set_cb(&clock_redraw, clock_redraw_cb);
-
-	ev_io_set(&xconnection, xfd, EV_READ);
-	ev_io_start(el, &xconnection);
-
+	clock_redraw.cb = clock_redraw_cb;
 	clock_redraw.at = clock_redraw.repeat = 1.0f;
- 	ev_timer_start(el, &clock_redraw);
 
+	ev_io_start(el, &xconnection);
+ 	ev_timer_start(el, &clock_redraw);
     	ev_loop(el, 0);
 }
 
