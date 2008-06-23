@@ -113,11 +113,12 @@ check_pkg xcomposite
 check_pkg fontconfig
 append_libs_and_cflags
 
+if [ $MEMDEBUG -eq 1 ]; then
+	CFLAGS="$CFLAGS -DMEMDEBUG"
+fi
+
 if [ $DEBUG -eq 1 ]; then
 	CFLAGS="$CFLAGS -g -O0 -DLOG_ASSERT_ENABLED -DDEBUG"
-	if [ $MEMDEBUG -eq 1 ]; then
-		CFLAGS="$CFLAGS -DMEMDEBUG"
-	fi
 else
 	if [ $OPTIMIZE -eq 1 ]; then
 		CFLAGS="$CFLAGS -O2 -march=native"
