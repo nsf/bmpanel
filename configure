@@ -21,14 +21,14 @@ help() {
 #----------------------------------------------------------------------------
 CFLAGS="-Wall"
 LIBS=-lev
+PACKAGES=""
 
 #----------------------------------------------------------------------------
 # helper functions
 #----------------------------------------------------------------------------
 append_libs_and_cflags() {
-	local PACKAGE=$1
-	CFLAGS="${CFLAGS} `pkg-config --cflags ${PACKAGE}`"
-	LIBS="${LIBS} `pkg-config --libs ${PACKAGE}`"
+	CFLAGS="${CFLAGS} `pkg-config --cflags ${PACKAGES}`"
+	LIBS="${LIBS} `pkg-config --libs ${PACKAGES}`"
 }
 
 check_pkg_version() {
@@ -40,7 +40,7 @@ check_pkg_version() {
 		exit 1
 	fi
 	echo "yes"
-	append_libs_and_cflags $PACKAGE
+	PACKAGES="${PACKAGES} ${PACKAGE}" 
 }
 
 check_pkg() {
@@ -51,7 +51,7 @@ check_pkg() {
 		exit 1
 	fi
 	echo "yes"
-	append_libs_and_cflags $PACKAGE
+	PACKAGES="${PACKAGES} ${PACKAGE}" 
 }
 
 yes_no() {
@@ -111,6 +111,7 @@ check_pkg x11
 check_pkg xrender
 check_pkg xcomposite
 check_pkg fontconfig
+append_libs_and_cflags
 
 if [ $DEBUG -eq 1 ]; then
 	CFLAGS="$CFLAGS -g -O0 -DLOG_ASSERT_ENABLED -DDEBUG"
