@@ -1419,13 +1419,17 @@ static void list_themes()
 }
 
 /**************************************************************************
-  libev loop and main
+  main event loop
 **************************************************************************/
 
-static void init_and_start_loop(int xfd)
+static void init_and_start_loop()
 {
 	fd_set events;
 	int maxfd;
+	int xfd;
+
+	/* get connection fd from Xlib */
+	xfd = ConnectionNumber(X.display);
 
 	/* create timer fd to deal with timer and connection in one thread */
 	timerfd = timerfd_create(CLOCK_MONOTONIC, 0);
@@ -1510,7 +1514,7 @@ int main(int argc, char **argv)
 	render_update_panel_positions(&P);
 	render_panel(&P);
 
-	init_and_start_loop(ConnectionNumber(X.display));
+	init_and_start_loop();
 
 	cleanup();
 	return 0;

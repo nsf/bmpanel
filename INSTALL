@@ -6,7 +6,6 @@ REQUIREMENTS ------------
  - XRender
  - XComposite
  - fontconfig
- - libev
  - make and gcc 4.x.x to compile library (tested on gcc 4.2.3)
 
 INSTALL -------
