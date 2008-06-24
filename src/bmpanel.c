@@ -8,10 +8,11 @@
 #include <string.h>
 #include <signal.h>
 #include <sys/time.h>
+#include <sys/timerfd.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <dirent.h>
-#include <ev.h>
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
 #include <X11/extensions/Xcomposite.h>
@@ -119,6 +120,8 @@ static struct {
 } X;
 
 static struct panel P;
+
+static int timerfd;
 
 static int commence_taskbar_redraw;
 static int commence_panel_redraw;
@@ -1265,20 +1268,22 @@ static void freeP()
 	if (!P.theme->use_composite)
 		imlib_free_pixmap_and_mask(P.bgpix);
 	XDestroyWindow(X.display, P.win);
+	XCloseDisplay(X.display);
 }
 
 static void cleanup()
 {
 	shutdown_render();
 	freeP();
+	close(timerfd);
 	LOG_MESSAGE("cleanup");
 }
 
 /**************************************************************************
-  libev callbacks
+  event callbacks
 **************************************************************************/
 
-static void xconnection_cb(EV_P_ struct ev_io *w, int revents)
+static void xconnection_cb()
 {
 	XEvent e;
 	while (XPending(X.display)) {
@@ -1337,7 +1342,7 @@ static void xconnection_cb(EV_P_ struct ev_io *w, int revents)
 	}
 }
 
-static void clock_redraw_cb(EV_P_ struct ev_timer *w, int revents)
+static void clock_redraw_cb()
 {
 	if (render_clock())
 		render_present();
@@ -1417,25 +1422,41 @@ static void list_themes()
   libev loop and main
 **************************************************************************/
 
-static void init_and_start_ev_loop(int xfd)
+static void init_and_start_loop(int xfd)
 {
-	struct ev_loop *el = ev_default_loop(0);
-	ev_timer clock_redraw;
-	ev_io xconnection;
+	fd_set events;
+	int maxfd;
 
-	/* macros?! whuut?! */
-	xconnection.active = xconnection.pending = xconnection.priority = 0;
-	xconnection.cb = xconnection_cb;
-	xconnection.fd = xfd; 
-	xconnection.events = EV_READ | EV_IOFDSET;
+	/* create timer fd to deal with timer and connection in one thread */
+	timerfd = timerfd_create(CLOCK_MONOTONIC, 0);
+	if (timerfd == -1)
+		LOG_ERROR("failed to create timer fd");
+	fcntl(timerfd, F_SETFL, O_NONBLOCK);
 
-	clock_redraw.active = clock_redraw.pending = clock_redraw.priority = 0;
-	clock_redraw.cb = clock_redraw_cb;
-	clock_redraw.at = clock_redraw.repeat = 1.0f;
+	maxfd = (timerfd > xfd) ? timerfd : xfd;
 
-	ev_io_start(el, &xconnection);
- 	ev_timer_start(el, &clock_redraw);
-    	ev_loop(el, 0);
+	/* 1 second interval */
+	struct itimerspec tspec = {{1,0},{1,0}};
+	timerfd_settime(timerfd, 0, &tspec, 0);
+
+	while (1) {
+		FD_ZERO(&events);
+		FD_SET(xfd, &events);
+		FD_SET(timerfd, &events);
+
+		if (select(maxfd+1, &events, 0, 0, 0) == -1)
+			break;
+
+		if (FD_ISSET(xfd, &events)) 
+			xconnection_cb();
+		if (FD_ISSET(timerfd, &events)) {
+			uint64_t tmp = 0;
+			/* dump all stuff from timer fd to nowhere */
+			while (read(timerfd, &tmp, sizeof(uint64_t)) > 0)
+				/* do nothing */;
+			clock_redraw_cb();
+		}
+	}
 }
 
 static void parse_args(int argc, char **argv)
@@ -1489,7 +1510,7 @@ int main(int argc, char **argv)
 	render_update_panel_positions(&P);
 	render_panel(&P);
 
-	init_and_start_ev_loop(ConnectionNumber(X.display));
+	init_and_start_loop(ConnectionNumber(X.display));
 
 	cleanup();
 	return 0;
