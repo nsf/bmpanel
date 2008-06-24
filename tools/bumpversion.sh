@@ -2,6 +2,7 @@
 
 if [ $# -ne 1 ]; then
 	echo "usage: bumpversion.sh VERSION"
+	echo "script will update src/version.h file and add commit to git"
 	exit 1
 fi
 
