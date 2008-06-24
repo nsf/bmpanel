@@ -6,14 +6,13 @@
 # help message
 #----------------------------------------------------------------------------
 help() {
-	echo "options:"
-	echo -e " --help\t\t\t- print this help and exit"
-	echo -e " --prefix=<path>\t- specify install path. "
-	echo -e " \t\t\t\tdefault <path> is /usr"
-	echo -e " --debug\t\t- enable debug mode"
-	echo -e " --mem-debug\t\t- become a memleak hunter"
-	echo -e " --optimize\t\t- extra optimizations (-O2 -march=native)"
-	echo -e " --ugly\t\t\t- enable ugly verbose mode"
+	echo "Options:"
+	echo -e "  --help\t\tprint this help and exit"
+	echo -e "  --prefix=PREFIX\tspecify install path [default=/usr]"
+	echo -e "  --debug\t\tenable debug mode"
+	echo -e "  --mem-debug\t\tbecome a memleak hunter"
+	echo -e "  --optimize\t\textra optimizations"
+	echo -e "  --ugly\t\tenable ugly verbose mode"
 }
 
 #----------------------------------------------------------------------------
