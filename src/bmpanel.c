@@ -1081,7 +1081,7 @@ static void handle_button(int x, int y, int button)
 	if (button == 3) {
 		struct task *iter = P.tasks;
 		while (iter) {
-			if (iter->desktop == adesk) {
+			if (iter->desktop == adesk || iter->desktop == -1) {
 				iter->iconified = 1;
 				iter->focused = 0;
 				XIconifyWindow(X.display, iter->win, X.screen);
@@ -1109,7 +1109,7 @@ static void handle_button(int x, int y, int button)
 	/* check taskbar */
 	struct task *iter = P.tasks;
 	while (iter) {
-		if (iter->desktop == adesk && 
+		if ((iter->desktop == adesk || iter->desktop == -1) &&
 		    x > iter->posx && 
 		    x < iter->posx + iter->width) 
 		{
