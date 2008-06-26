@@ -437,8 +437,8 @@ static Window create_panel_window(uint placement, int h, int hover)
 	if (!hover)
 		hover = h;
 	int y = 0;
-	uint32_t strut[4] = {0,0,0,hover + X.screen_height - X.wa_h - X.wa_y};
-	uint32_t tmp;
+	long strut[4] = {0,0,0,hover + X.screen_height - X.wa_h - X.wa_y};
+	long tmp;
 
 	if (placement == PLACE_TOP) {
 		y = X.wa_y;
@@ -456,7 +456,7 @@ static Window create_panel_window(uint placement, int h, int hover)
 			PropModeReplace, (uchar*)&strut, 4);
 
 	/* we want to be on all desktops */
-	tmp = 0xFFFFFFFF;
+	tmp = -1;
 	XChangeProperty(X.display, win, X.atoms[XATOM_NET_WM_DESKTOP], XA_CARDINAL, 32,
 			PropModeReplace, (uchar*)&tmp, 1);
 
