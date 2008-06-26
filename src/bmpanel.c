@@ -195,7 +195,7 @@ static void *get_prop_data(Window win, Atom prop, Atom type, int *items)
 static int get_prop_int(Window win, Atom at)
 {
 	int num = 0;
-	uint32_t *data;
+	long *data;
 
 	data = get_prop_data(win, at, XA_CARDINAL, 0);
 	if (data) {
@@ -225,20 +225,19 @@ static int get_window_desktop(Window win)
 
 static int is_window_hidden(Window win)
 {
-	uint32_t *data;
+	Atom *data;
 	int ret = 0;
 	int num;
-	Atom *type;
 
-	type = get_prop_data(win, X.atoms[XATOM_NET_WM_WINDOW_TYPE], XA_ATOM, &num);
-	if (type) {
-		if (*type == X.atoms[XATOM_NET_WM_WINDOW_TYPE_DOCK] ||
-		    *type == X.atoms[XATOM_NET_WM_WINDOW_TYPE_DESKTOP]) 
+	data = get_prop_data(win, X.atoms[XATOM_NET_WM_WINDOW_TYPE], XA_ATOM, &num);
+	if (data) {
+		if (*data == X.atoms[XATOM_NET_WM_WINDOW_TYPE_DOCK] ||
+		    *data == X.atoms[XATOM_NET_WM_WINDOW_TYPE_DESKTOP]) 
 		{
-			XFree(type);
+			XFree(data);
 			return 1;
 		}
-		XFree(type);
+		XFree(data);
 	}
 
 	data = get_prop_data(win, X.atoms[XATOM_NET_WM_STATE], XA_ATOM, &num);
@@ -257,7 +256,7 @@ static int is_window_hidden(Window win)
 
 static int is_window_iconified(Window win)
 {
-	uint32_t *data;
+	long *data;
 	int ret = 0;
 
 	data = get_prop_data(win, X.atoms[XATOM_WM_STATE], 
@@ -291,14 +290,20 @@ static Imlib_Image get_window_icon(Window win)
 	Imlib_Image ret = 0;
 
 	int num = 0;
-	uint32_t *data = get_prop_data(win, X.atoms[XATOM_NET_WM_ICON], 
+	long *data = get_prop_data(win, X.atoms[XATOM_NET_WM_ICON], 
 					XA_CARDINAL, &num);
 	if (data) {
-		uint32_t *datal = data;
+		long *datal = data;
 		uint32_t w,h;
+		int i;
 		w = *datal++;
 		h = *datal++;
-		ret = imlib_create_image_using_copied_data(w,h,datal);
+		/* hack for 64 bit systems */
+		uint32_t *array = XMALLOC(uint32_t, w*h);
+		for (i = 0; i < w*h; ++i) 
+			array[i] = datal[i];
+		ret = imlib_create_image_using_copied_data(w,h,array);
+		xfree(array);
 		imlib_context_set_image(ret);
 		imlib_image_set_has_alpha(1);
 		XFree(data);
@@ -1184,7 +1189,7 @@ static void initX()
 	append_font_path_to_imlib();
 
 	/* get workarea */
-	int32_t *workarea = get_prop_data(X.root, X.atoms[XATOM_NET_WORKAREA], XA_CARDINAL, 0);
+	long *workarea = get_prop_data(X.root, X.atoms[XATOM_NET_WORKAREA], XA_CARDINAL, 0);
 	if (workarea) {
 		X.wa_x = workarea[0];
 		X.wa_y = workarea[1];
