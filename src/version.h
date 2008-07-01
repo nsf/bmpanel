@@ -1,1 +1,1 @@
-#define BMPANEL_VERSION "0.9.22"
+#define BMPANEL_VERSION "0.9.23"
