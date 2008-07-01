@@ -1136,7 +1136,7 @@ static void handle_button(int x, int y, int button)
 					XConfigureWindow(X.display, iter->win, CWStackMode, &wc);
 				}
 			}
-			commence_taskbar_redraw = 1;
+			/* commence_taskbar_redraw = 1; */
 		} else if (iter->desktop == adesk) {
 			iter->focused = 0;
 		}
