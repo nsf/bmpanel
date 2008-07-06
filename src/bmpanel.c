@@ -155,21 +155,6 @@ static int X_io_error_handler(Display *dpy)
 }
 
 /**************************************************************************
-  imlib2 font util
-**************************************************************************/
-
-static void append_font_path_to_imlib()
-{
-	int32_t fonts, i;
-	char **fontpaths = XGetFontPath(X.display, &fonts);
-	
-	for (i = 0; i < fonts; ++i)
-		imlib_add_path_to_font_path(fontpaths[i]);
-
-	XFreeFontPath(fontpaths);
-}
-
-/**************************************************************************
   window properties
 **************************************************************************/
 
@@ -1185,8 +1170,6 @@ static void initX()
 	/* get internal atoms */
 	XInternAtoms(X.display, atom_names, XATOM_COUNT, False, X.atoms);
 	XSelectInput(X.display, X.root, PropertyChangeMask);
-
-	append_font_path_to_imlib();
 
 	/* get workarea */
 	long *workarea = get_prop_data(X.root, X.atoms[XATOM_NET_WORKAREA], XA_CARDINAL, 0);
