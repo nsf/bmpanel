@@ -1214,6 +1214,16 @@ validation:
 	if (P.theme->use_composite)
 		setup_composite();
 
+	/* set width and align the panel*/
+	if(P.theme->panel_width) {
+		int panel_width = (P.theme->width_type) ? (int)((X.wa_w * P.theme->panel_width)/100) : P.theme->panel_width;
+		if(panel_width > X.wa_w)
+			panel_width = X.wa_w;
+		X.wa_x = (P.theme->panel_align == 1) ? (int)((X.wa_w - panel_width)/2) :
+				(P.theme->panel_align == 2) ? X.wa_w - panel_width : 0;
+		X.wa_w = panel_width;
+	}
+
 	/* create panel window */
 	P.win = create_panel_window(P.theme->placement, P.theme->height, P.theme->height_override);
 

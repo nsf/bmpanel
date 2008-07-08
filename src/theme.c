@@ -14,6 +14,7 @@ static void free_imlib_font(Imlib_Font font);
 static void free_imlib_image(Imlib_Image img);
 static uint figure_out_placement(const char *str);
 static uint figure_out_align(const char *str);
+static uint figure_out_width_type(const char *str);
 static int parse_key_value(const char *key, const char *value, struct theme *t);
 static int parse_line(char *line, struct theme *t);
 static void parse_color(struct color *c, const char *value);
@@ -226,6 +227,14 @@ static uint figure_out_align(const char *str)
 	return 0;
 }
 
+static uint figure_out_width_type(const char *str)
+{
+	if (!strcmp("percent", str)) {
+		return WIDTH_TYPE_PERCENT;
+	}
+	return WIDTH_TYPE_PIXELS;
+}
+
 /**************************************************************************
   evil slow parser (TODO: rewrite with hash table?)
 **************************************************************************/
@@ -270,6 +279,12 @@ static int parse_key_value(const char *key, const char *value, struct theme *t)
 		PARSE_INT(t->use_composite);
 	} ECMP("height_override") {
 		PARSE_INT(t->height_override);
+	} ECMP("panel_width") {
+		PARSE_INT(t->panel_width);
+    } ECMP("panel_align") {
+		t->panel_align = figure_out_align(value);
+	} ECMP("width_type") {
+		t->width_type = figure_out_width_type(value);
 	/* ---------------------------- clock ----------------------- */
 	} ECMP("clock_right_img") {
 		SAFE_LOAD_IMAGE(t->clock.right_img);

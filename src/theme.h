@@ -15,8 +15,11 @@
 #define TALIGN_CENTER 	1
 #define TALIGN_RIGHT 	2
 
-#define PLACE_TOP 	0
+#define PLACE_TOP	0
 #define PLACE_BOTTOM 	1
+
+#define WIDTH_TYPE_PIXELS	0
+#define WIDTH_TYPE_PERCENT	1
 
 struct color {
 	uchar r, g, b;
@@ -101,6 +104,9 @@ struct theme {
 	int tray_icons_spacing;
 	int use_composite;
 	int height_override;
+	int panel_width;
+	int panel_align;
+	int width_type;
 
 	/* elements */
 	struct clock_theme clock;
