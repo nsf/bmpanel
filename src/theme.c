@@ -218,21 +218,19 @@ static uint figure_out_placement(const char *str)
 static uint figure_out_align(const char *str)
 {
 	if (!strcmp("left", str)) {
-		return TALIGN_LEFT;
+		return ALIGN_LEFT;
 	} else if (!strcmp("center", str)) {
-		return TALIGN_CENTER;
+		return ALIGN_CENTER;
 	} else if (!strcmp("right", str)) {
-		return TALIGN_RIGHT;
+		return ALIGN_RIGHT;
 	}
 	return 0;
 }
 
 static uint figure_out_width_type(const char *str)
 {
-	if (!strcmp("percent", str)) {
-		return WIDTH_TYPE_PERCENT;
-	}
-	return WIDTH_TYPE_PIXELS;
+	/* If seeking by percent */
+	return (strchr(str, '%') != 0 ? WIDTH_TYPE_PERCENT : WIDTH_TYPE_PIXELS);
 }
 
 /**************************************************************************
@@ -279,12 +277,11 @@ static int parse_key_value(const char *key, const char *value, struct theme *t)
 		PARSE_INT(t->use_composite);
 	} ECMP("height_override") {
 		PARSE_INT(t->height_override);
-	} ECMP("panel_width") {
-		PARSE_INT(t->panel_width);
-    } ECMP("panel_align") {
-		t->panel_align = figure_out_align(value);
-	} ECMP("width_type") {
+	} ECMP("width") {
 		t->width_type = figure_out_width_type(value);
+		PARSE_INT(t->width);
+	} ECMP("alignment") {
+		t->alignment = figure_out_align(value);
 	/* ---------------------------- clock ----------------------- */
 	} ECMP("clock_right_img") {
 		SAFE_LOAD_IMAGE(t->clock.right_img);

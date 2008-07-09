@@ -180,12 +180,12 @@ static void draw_text(Imlib_Font font, uint align, int ox, int width,
 	imlib_get_text_size(text, &textw, &texth);
 	oy = (theme->height - texth) / 2;
 	switch (align) {
-	case TALIGN_LEFT:
+	case ALIGN_LEFT:
 		break;
-	case TALIGN_CENTER:
+	case ALIGN_CENTER:
 		ox += (width - textw) / 2;
 		break;
-	case TALIGN_RIGHT:
+	case ALIGN_RIGHT:
 		ox = width - textw;
 		break;
 	}

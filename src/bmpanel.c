@@ -44,6 +44,7 @@ enum {
 	XATOM_NET_WM_WINDOW_TYPE_DOCK,
 	XATOM_NET_WM_WINDOW_TYPE_DESKTOP,
 	XATOM_NET_WM_STRUT,
+	XATOM_NET_WM_STRUT_PARTIAL,
 	XATOM_NET_CLIENT_LIST,
 	XATOM_NET_NUMBER_OF_DESKTOPS,
 	XATOM_NET_CURRENT_DESKTOP,
@@ -79,6 +80,7 @@ static char *atom_names[] = {
 	"_NET_WM_WINDOW_TYPE_DOCK",
 	"_NET_WM_WINDOW_TYPE_DESKTOP",
 	"_NET_WM_STRUT",
+	"_NET_WM_STRUT_PARTIAL",
 	"_NET_CLIENT_LIST",
 	"_NET_NUMBER_OF_DESKTOPS",
 	"_NET_CURRENT_DESKTOP",
@@ -416,7 +418,7 @@ static void setup_composite()
 	X.depth = 32;
 }
 
-static Window create_panel_window(uint placement, int h, int hover)
+static Window create_panel_window(uint placement, int alignment, int h, int w, int hover)
 {
 	Window win;
 	if (!hover)
@@ -424,6 +426,7 @@ static Window create_panel_window(uint placement, int h, int hover)
 	int y = 0;
 	long strut[4] = {0,0,0,hover + X.screen_height - X.wa_h - X.wa_y};
 	long tmp;
+	int x = X.wa_x;
 
 	if (placement == PLACE_TOP) {
 		y = X.wa_y;
@@ -431,14 +434,36 @@ static Window create_panel_window(uint placement, int h, int hover)
 		strut[2] = hover + X.wa_y;
 	} else if (placement == PLACE_BOTTOM)
 		y = X.wa_y + X.wa_h - h;
+	
+	/* set width and align the panel*/
+	if (w) {
+		if (w > X.wa_w)
+			w = X.wa_w;
+		x += (alignment == ALIGN_CENTER) ? (int)((X.wa_w - w)/2) : 
+				(alignment == ALIGN_RIGHT) ? X.wa_w - w : 0;
+	}
 
-	win = XCreateWindow(X.display, X.root, X.wa_x, y, X.wa_w, h, 0, 
+	win = XCreateWindow(X.display, X.root, x, y, w, h, 0, 
 			X.depth, InputOutput, X.visual, X.amask, &X.attrs);
 
 	XSelectInput(X.display, win, ButtonPressMask | ExposureMask | StructureNotifyMask);
+
 	/* get our place on desktop */
 	XChangeProperty(X.display, win, X.atoms[XATOM_NET_WM_STRUT], XA_CARDINAL, 32,
 			PropModeReplace, (uchar*)&strut, 4);
+
+	static const struct {
+		int s, e;
+	} where[] = {
+		[PLACE_TOP] = {8, 9},
+		[PLACE_BOTTOM] = {10, 11}
+	};
+
+	long strutp[12] = {strut[0], strut[1], strut[2], strut[3],};
+	strutp[where[placement].s] = x;
+	strutp[where[placement].e] = x+w;
+	XChangeProperty(X.display, win, X.atoms[XATOM_NET_WM_STRUT_PARTIAL], XA_CARDINAL, 32,
+			PropModeReplace, (uchar*)&strutp, 12);
 
 	/* we want to be on all desktops */
 	tmp = -1;
@@ -454,13 +479,13 @@ static Window create_panel_window(uint placement, int h, int hover)
 	XSizeHints size_hints;
 
 	/* we need this for pekwm (other modern WMs should ignore them) */
-	size_hints.x = X.wa_x;
+	size_hints.x = x;
 	size_hints.y = y;
-	size_hints.width = X.wa_w;
+	size_hints.width = w;
 	size_hints.height = h;
 
 	size_hints.flags = PPosition | PMaxSize | PMinSize;
-	size_hints.min_width = size_hints.max_width = X.wa_w;
+	size_hints.min_width = size_hints.max_width = w;
 	size_hints.min_height = size_hints.max_height = h;
 	XSetWMNormalHints(X.display, win, &size_hints);
 
@@ -1214,18 +1239,17 @@ validation:
 	if (P.theme->use_composite)
 		setup_composite();
 
-	/* set width and align the panel*/
-	if(P.theme->panel_width) {
-		int panel_width = (P.theme->width_type) ? (int)((X.wa_w * P.theme->panel_width)/100) : P.theme->panel_width;
-		if(panel_width > X.wa_w)
-			panel_width = X.wa_w;
-		X.wa_x = (P.theme->panel_align == 1) ? (int)((X.wa_w - panel_width)/2) :
-				(P.theme->panel_align == 2) ? X.wa_w - panel_width : 0;
-		X.wa_w = panel_width;
-	}
-
 	/* create panel window */
-	P.win = create_panel_window(P.theme->placement, P.theme->height, P.theme->height_override);
+	P.width = X.wa_w;
+	if (P.theme->width)
+		P.width = (P.theme->width_type == WIDTH_TYPE_PERCENT) ? 
+			(int)((X.wa_w * P.theme->width) / 100) : 
+			P.theme->width;
+	P.win = create_panel_window(P.theme->placement, 
+			            P.theme->alignment, 
+				    P.theme->height,
+				    P.width,
+				    P.theme->height_override);
 
 	if (P.theme->use_composite)
 		XCompositeRedirectSubwindows(X.display, P.win, CompositeRedirectAutomatic);
@@ -1501,7 +1525,7 @@ int main(int argc, char **argv)
 
 	initX();
 	initP(theme);
-	init_render(P.theme, X.display, P.win, X.visual, X.colmap, X.wa_w);
+	init_render(P.theme, X.display, P.win, X.visual, X.colmap, P.width);
 
 	signal(SIGHUP, sighup_handler);
 	signal(SIGINT, sigint_handler);

@@ -11,9 +11,9 @@
 #define BSTATE_IDLE 	0
 #define BSTATE_PRESSED 	1
 
-#define TALIGN_LEFT 	0
-#define TALIGN_CENTER 	1
-#define TALIGN_RIGHT 	2
+#define ALIGN_LEFT 	0
+#define ALIGN_CENTER 	1
+#define ALIGN_RIGHT 	2
 
 #define PLACE_TOP	0
 #define PLACE_BOTTOM 	1
@@ -104,8 +104,8 @@ struct theme {
 	int tray_icons_spacing;
 	int use_composite;
 	int height_override;
-	int panel_width;
-	int panel_align;
+	int width;
+	int alignment;
 	int width_type;
 
 	/* elements */
