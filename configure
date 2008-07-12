@@ -15,6 +15,7 @@ help() {
 	echo -e "  --ugly\t\tenable ugly verbose mode"
 }
 
+TIMERFDERRORMSG="\n***************************************************************************\nWARNING! Probably you have an old glibc library and/or an old linux kernel,\nyou need glibc >= 2.8 and the linux kernel >= 2.6.22 to compile this panel.\n***************************************************************************\n"
 #----------------------------------------------------------------------------
 # globals
 #----------------------------------------------------------------------------
@@ -28,6 +29,30 @@ PACKAGES=""
 append_libs_and_cflags() {
 	CFLAGS="${CFLAGS} `pkg-config --cflags ${PACKAGES}`"
 	LIBS="${LIBS} `pkg-config --libs ${PACKAGES}`"
+}
+
+check_header() {
+	local HEADER=$1
+	local MSG=$2
+	echo -n "checking for $HEADER... "
+
+	cat <<EOF > tmp.c && gcc tmp.c 2> /dev/null
+#include "$1"
+int main() { return 0; }
+EOF
+
+	RESULT=$?
+	rm -rf tmp.c
+	rm -rf a.out
+
+	if [ $RESULT -ne 0 ]; then
+		echo "no"
+		if [[ -n $MSG ]]; then
+			echo -e $MSG
+		fi
+		return
+	fi
+	echo "yes"
 }
 
 check_pkg_version() {
@@ -105,6 +130,7 @@ done
 # general flow
 #----------------------------------------------------------------------------
 echo "checking for installed devel packages"
+check_header sys/timerfd.h "$TIMERFDERRORMSG"
 check_pkg_version imlib2 1.4.0
 check_pkg x11
 check_pkg xrender
