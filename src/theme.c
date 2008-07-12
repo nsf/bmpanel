@@ -523,10 +523,12 @@ static Imlib_Font load_font(const char *pattern)
 	char *stmp = strrchr(filename, '.');
 	if (!stmp) {
 		LOG_WARNING("failed to find '.' in font file name, miss extension?");
+		xfree(filename);
 		return 0;
 	}
 	if (strcasecmp(stmp, ".ttf") != 0) {
 		LOG_WARNING("only ttf files are supported");
+		xfree(filename);
 		return 0;
 	}
 	*stmp = '\0';
