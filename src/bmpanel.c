@@ -16,6 +16,11 @@
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
 #include <X11/extensions/Xcomposite.h>
+#if defined(WITH_EV)
+ #include <ev.h>
+#elif defined(WITH_EVENT)
+ #include <event.h>
+#endif
 #include "logger.h"
 #include "theme.h"
 #include "render.h"
@@ -1444,6 +1449,75 @@ static void list_themes()
   main event loop
 **************************************************************************/
 
+#if defined(WITH_EV)
+/* ---------- libev implementation ---------- */
+static void clock_redraw_cb_ev(EV_P_ struct ev_timer *w, int revents)
+{
+	clock_redraw_cb();
+}
+static void xconnection_cb_ev(EV_P_ struct ev_io *w, int revents)
+{
+	xconnection_cb();
+}
+
+static void init_and_start_loop()
+{
+	int xfd = ConnectionNumber(X.display);
+	struct ev_loop *el = ev_default_loop(0);
+	ev_timer clock_redraw;
+	ev_io xconnection;
+
+	/* macros?! whuut?! */
+	xconnection.active = xconnection.pending = xconnection.priority = 0;
+	xconnection.cb = xconnection_cb_ev;
+	xconnection.fd = xfd; 
+	xconnection.events = EV_READ | EV_IOFDSET;
+
+	clock_redraw.active = clock_redraw.pending = clock_redraw.priority = 0;
+	clock_redraw.cb = clock_redraw_cb_ev;
+	clock_redraw.at = clock_redraw.repeat = 1.0f;
+
+	ev_io_start(el, &xconnection);
+	ev_timer_start(el, &clock_redraw);
+	ev_loop(el, 0);
+}
+#elif defined(WITH_EVENT)
+/* ---------- libevent implementation ---------- */
+static void clock_redraw_cb_event(int fd, short type, void *arg)
+{
+	clock_redraw_cb();
+	
+	/* reschedule */
+	struct timeval tv = {1, 0};
+	event_add((struct event*)arg, &tv);
+
+}
+static void xconnection_cb_event(int fd, short type, void *arg)
+{
+	xconnection_cb();
+	
+	/* reschedule */
+	event_add((struct event*)arg, 0);
+}
+
+static void init_and_start_loop()
+{
+	int xfd = ConnectionNumber(X.display);
+	struct event clock_redraw;
+	struct event xconnection;
+	struct timeval tv = {1, 0};
+
+	event_init();
+	event_set(&clock_redraw, -1, 0, clock_redraw_cb_event, &clock_redraw);
+	event_add(&clock_redraw, &tv); 
+
+	event_set(&xconnection, xfd, EV_READ, xconnection_cb_event, &xconnection);
+	event_add(&xconnection, 0);
+
+	event_dispatch();
+}
+#else
+/* ---------- glibc 2.8 + timerfd in linux kernel ---------- */
 static void init_and_start_loop()
 {
 	fd_set events;
@@ -1484,6 +1558,7 @@ static void init_and_start_loop()
 		}
 	}
 }
+#endif
 
 static void parse_args(int argc, char **argv)
 {
