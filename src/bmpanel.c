@@ -1611,6 +1611,7 @@ int main(int argc, char **argv)
 	render_update_panel_positions(&P);
 	render_panel(&P);
 
+	XSync(X.display, 0);
 	init_and_start_loop();
 
 	cleanup();
