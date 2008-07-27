@@ -505,6 +505,15 @@ static Window create_panel_window(uint placement, int alignment, int h, int w, i
 	struct mwmhints mwm = {MWM_HINTS_DECORATIONS,0,0,0,0};
 	XChangeProperty(X.display, win, X.atoms[XATOM_MOTIF_WM_HINTS], X.atoms[XATOM_MOTIF_WM_HINTS], 
 			32, PropModeReplace, (uchar*)&mwm, sizeof(struct mwmhints) / 4);
+
+	/* set classhint */
+	XClassHint *ch;
+	if (!(ch = XAllocClassHint()))
+		LOG_ERROR("failed to allocate memory for class hints");
+	ch->res_name = "panel";
+	ch->res_class = "bmpanel";
+	XSetClassHint(X.display, win, ch);
+	XFree(ch);
 	
 	XMapWindow(X.display, win);
 	XFlush(X.display);
