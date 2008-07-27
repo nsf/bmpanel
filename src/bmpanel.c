@@ -8,7 +8,6 @@
 #include <string.h>
 #include <signal.h>
 #include <sys/time.h>
-#include <sys/timerfd.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -20,6 +19,8 @@
  #include <ev.h>
 #elif defined(WITH_EVENT)
  #include <event.h>
+#else
+ #include <sys/timerfd.h>
 #endif
 #include "logger.h"
 #include "theme.h"
