@@ -12,7 +12,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <dirent.h>
-#include <X11/Xatom.h>
 #include <X11/Xutil.h>
 #include <X11/extensions/Xcomposite.h>
 #if defined(WITH_EV)
@@ -31,34 +30,6 @@
 /**************************************************************************
   GLOBALS
 **************************************************************************/
-
-enum {
-	XATOM_WM_STATE,
-	XATOM_NET_DESKTOP_NAMES,
-	XATOM_NET_WM_STATE,
-	XATOM_NET_ACTIVE_WINDOW,
-	XATOM_NET_WM_NAME,
-	XATOM_NET_WORKAREA,
-	XATOM_NET_WM_ICON,
-	XATOM_NET_WM_VISIBLE_NAME,
-	XATOM_NET_WM_STATE_SKIP_TASKBAR,
-	XATOM_NET_WM_STATE_SHADED,
-	XATOM_NET_WM_STATE_HIDDEN,
-	XATOM_NET_WM_DESKTOP,
-	XATOM_NET_MOVERESIZE_WINDOW,
-	XATOM_NET_WM_WINDOW_TYPE,
-	XATOM_NET_WM_WINDOW_TYPE_DOCK,
-	XATOM_NET_WM_WINDOW_TYPE_DESKTOP,
-	XATOM_NET_WM_STRUT,
-	XATOM_NET_WM_STRUT_PARTIAL,
-	XATOM_NET_CLIENT_LIST,
-	XATOM_NET_NUMBER_OF_DESKTOPS,
-	XATOM_NET_CURRENT_DESKTOP,
-	XATOM_NET_SYSTEM_TRAY_OPCODE,
-	XATOM_UTF8_STRING,
-	XATOM_MOTIF_WM_HINTS,
-	XATOM_COUNT
-};
 
 struct mwmhints {
 	uint32_t flags;
@@ -92,7 +63,8 @@ static char *atom_names[] = {
 	"_NET_CURRENT_DESKTOP",
 	"_NET_SYSTEM_TRAY_OPCODE",
 	"UTF8_STRING",
-	"_MOTIF_WM_HINTS"
+	"_MOTIF_WM_HINTS",
+	"_XROOTPMAP_ID"
 };
 
 #ifndef PREFIX
@@ -105,28 +77,7 @@ static char *atom_names[] = {
 #define TRAY_REQUEST_DOCK 0
 #define MWM_HINTS_DECORATIONS (1L << 1)
 
-static struct {
-	Display *display;
-	int screen;
-	int screen_width;
-	int screen_height;
-	
-	int wa_x;
-	int wa_y;
-	int wa_w;
-	int wa_h;
-
-	Visual *visual;
-	Colormap colmap;
-	XSetWindowAttributes attrs;
-	uint32_t amask;
-	int depth;
-
-	Window root;
-	Atom atoms[XATOM_COUNT];
-	Atom trayselatom;
-} X;
-
+static struct xinfo X;
 static struct panel P;
 
 static int timerfd;
@@ -204,6 +155,19 @@ static Window get_prop_window(Window win, Atom at)
 	Window *data;
 
 	data = get_prop_data(win, at, XA_WINDOW, 0);
+	if (data) {
+		num = *data;
+		XFree(data);
+	}
+	return num;
+}
+
+static Pixmap get_prop_pixmap(Window win, Atom at)
+{
+	Pixmap num = 0;
+	Pixmap *data;
+
+	data = get_prop_data(win, at, XA_PIXMAP, 0);
 	if (data) {
 		num = *data;
 		XFree(data);
@@ -449,6 +413,7 @@ static Window create_panel_window(uint placement, int alignment, int h, int w, i
 				(alignment == ALIGN_RIGHT) ? X.wa_w - w : 0;
 	}
 
+	P.x = x; P.y = y;
 	win = XCreateWindow(X.display, X.root, x, y, w, h, 0, 
 			X.depth, InputOutput, X.visual, X.amask, &X.attrs);
 
@@ -516,7 +481,7 @@ static Window create_panel_window(uint placement, int alignment, int h, int w, i
 	XFree(ch);
 	
 	XMapWindow(X.display, win);
-	XFlush(X.display);
+	XSync(X.display, 0);
 
 	/* also send message to wm (fluxbox bug?) */
 	{
@@ -1052,6 +1017,12 @@ static void handle_property_notify(Window win, Atom a)
 			commence_taskbar_redraw = 1;
 			return;
 		}
+
+		if (a == X.atoms[XATOM_XROOTPMAP_ID]) {
+			X.rootpmap = get_prop_pixmap(X.root, X.atoms[XATOM_XROOTPMAP_ID]);
+			render_update_panel_positions(&P);
+			return;
+		}
 	}
 
 	/* now it's time for per-window changes */
@@ -1211,6 +1182,8 @@ static void initX()
 	XInternAtoms(X.display, atom_names, XATOM_COUNT, False, X.atoms);
 	XSelectInput(X.display, X.root, PropertyChangeMask);
 
+	X.rootpmap = get_prop_pixmap(X.root, X.atoms[XATOM_XROOTPMAP_ID]);
+
 	/* get workarea */
 	long *workarea = get_prop_data(X.root, X.atoms[XATOM_NET_WORKAREA], XA_CARDINAL, 0);
 	if (workarea) {
@@ -1268,17 +1241,6 @@ validation:
 
 	if (P.theme->use_composite)
 		XCompositeRedirectSubwindows(X.display, P.win, CompositeRedirectAutomatic);
-	if (!P.theme->use_composite) {
-		/* set window bg */
-		Pixmap tile, mask;
-		imlib_context_set_display(X.display);
-		imlib_context_set_visual(X.visual);
-		imlib_context_set_drawable(P.win);
-		imlib_context_set_image(P.theme->tile_img);
-		imlib_render_pixmaps_for_whole_image(&tile, &mask);
-		P.bgpix = tile;
-		XSetWindowBackgroundPixmap(X.display, P.win, P.bgpix);
-	}
 
 	if (P.theme->use_composite && is_element_in_theme(P.theme, 't')) {
 		LOG_WARNING("tray cannot be used with composite mode enabled");
@@ -1302,8 +1264,6 @@ static void freeP()
 	free_theme(P.theme);
 	free_tasks();
 	free_desktops();
-	if (!P.theme->use_composite)
-		imlib_free_pixmap_and_mask(P.bgpix);
 	XDestroyWindow(X.display, P.win);
 	XCloseDisplay(X.display);
 }
@@ -1610,7 +1570,7 @@ int main(int argc, char **argv)
 
 	initX();
 	initP(theme);
-	init_render(P.theme, X.display, P.win, X.visual, X.colmap, P.width);
+	init_render(&X, &P);
 
 	signal(SIGHUP, sighup_handler);
 	signal(SIGINT, sigint_handler);

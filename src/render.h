@@ -11,7 +11,7 @@
 #include "bmpanel.h"
 #include "theme.h"
 
-void init_render(struct theme *t, Display *dpy, Drawable drawable, Visual *vis, Colormap cm, uint width);
+void init_render(struct xinfo *X, struct panel *P);
 void shutdown_render();
 
 void render_update_panel_positions(struct panel *p);
