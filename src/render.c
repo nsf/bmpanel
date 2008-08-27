@@ -566,7 +566,7 @@ static void tile_image_blend(Imlib_Image dst, Imlib_Image img, int ox, int width
 
 static void update_bg()
 {
-	if (currootpmap != *rootpmap) {
+	if (currootpmap != *rootpmap && *rootpmap != 0) {
 		currootpmap = *rootpmap;
 		imlib_context_set_drawable(currootpmap);
 		if (bg) {
@@ -588,6 +588,19 @@ static void update_bg()
 		imlib_free_pixmap_and_mask(tile);
 		imlib_free_image();
 	}
+}
+
+static void set_bg()
+{
+		Pixmap tile, mask;
+		imlib_context_set_display(bbdpy);
+		imlib_context_set_visual(bbvis);
+		imlib_context_set_drawable(bbwin);
+		
+		imlib_context_set_image(theme->tile_img);
+		imlib_render_pixmaps_for_whole_image(&tile, &mask);
+		XSetWindowBackgroundPixmap(bbdpy, bbwin, tile);
+		imlib_free_pixmap_and_mask(tile);
 }
 
 void init_render(struct xinfo *X, struct panel *P)
@@ -625,8 +638,10 @@ void init_render(struct xinfo *X, struct panel *P)
 		pwin.subwindow_mode = IncludeInferiors;
 		rootpic = XRenderCreatePicture(bbdpy, bbwin, XRenderFindVisualFormat(bbdpy, bbvis), 
 				CPSubwindowMode, &pwin);
-	} else {
+	} else if (*rootpmap) {
 		update_bg();
+	} else {
+		set_bg();
 	}
 
 	imlib_context_set_blend(0);
@@ -649,7 +664,7 @@ void shutdown_render()
 		XRenderFreePicture(bbdpy, picalpha);
 		XFreePixmap(bbdpy, pixcolor);
 		XFreePixmap(bbdpy, pixalpha);
-	} else {
+	} else if (bg) {
 		imlib_context_set_image(bg);
 		imlib_free_image();
 	}
@@ -799,7 +814,7 @@ void render_present()
 				 rootpic,
 				 0, 0, 0, 0, 0, 0, bbwidth, 
 				 bbheight);
-	} else {
+	} else if (*rootpmap) {
 		imlib_context_set_image(bbcolor);
 		imlib_blend_image_onto_image(bg,0,0,0,bbwidth,bbheight,0,0,bbwidth,bbheight);
 		imlib_context_set_blend(1);
@@ -807,6 +822,10 @@ void render_present()
 		imlib_context_set_blend(0);
 
 		imlib_context_set_drawable(bbwin);
+		imlib_render_image_on_drawable(0,0);	
+	} else {
+		imlib_context_set_drawable(bbwin);
+		imlib_context_set_image(bb);
 		imlib_render_image_on_drawable(0,0);
 	}
 }
