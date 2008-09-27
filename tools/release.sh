@@ -23,7 +23,7 @@ fi
 echo "releasing for: $gitname"
 echo "creating tarball: $releasedir/$tarball"
 [ -d $releasedir ] || mkdir $releasedir
-git-archive --format=tar --prefix=bmpanel-$suffix/ $gitname > $releasedir/$tarball
+git archive --format=tar --prefix=bmpanel-$suffix/ $gitname > $releasedir/$tarball
 [ -s $releasedir/$tarball ] || exit_with_error "failed to create tarball (wrong git name?)" 1
 
 echo "gzipping tarball to: $releasedir/$tarball.gz"
