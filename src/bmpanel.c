@@ -1055,8 +1055,13 @@ static void handle_property_notify(Window win, Atom a)
 	if (a == X.atoms[XATOM_NET_WM_STATE] ||
 	    a == X.atoms[XATOM_WM_STATE]) 
 	{
+		if (is_window_hidden(t->win)) {
+			del_task(t->win);
+			return;
+		}
 		t->iconified = is_window_iconified(t->win);
 		t->focused = (get_prop_window(X.root, X.atoms[XATOM_NET_ACTIVE_WINDOW]) == t->win);
+		
 		commence_taskbar_redraw = 1;
 		return;
 	}
