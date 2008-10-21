@@ -5,6 +5,7 @@ REQUIREMENTS ------------
  - Xlib
  - XRender
  - XComposite
+ - Xfixes
  - fontconfig
  - make and gcc 4.x.x to compile library (tested on gcc 4.2.3)
 
