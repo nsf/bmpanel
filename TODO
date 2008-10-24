@@ -1,0 +1,21 @@
+src/theme.c:
+	Probably 'theme_is_valid' isn't up-to-date. It should be refactored
+	or even rewritten.
+
+src/theme.{h,c}:
+	I need a tiny version of theme parser to implement correct --list
+	command.
+
+src/bmpanel.c:
+	Implement correct --list command: check dirs with themes for 'theme'
+	file and parse it with tiny parser. Get name, author and version
+	out of it.
+
+*:
+	Remove composite mode.
+
+<unknown>:
+	Write a manpage for bmpanel.
+
+<unknown>:
+	Write theme tutorial with nice images.
