@@ -19,3 +19,9 @@ src/bmpanel.c:
 
 <unknown>:
 	Write theme tutorial with nice images.
+
+*:
+	Xinerama support (multi-monitor configurations)
+
+*:
+	XRandR support (react on resolution changes)
