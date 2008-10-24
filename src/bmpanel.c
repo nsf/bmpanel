@@ -13,7 +13,13 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <X11/Xutil.h>
-#include <X11/extensions/Xcomposite.h>
+
+/* composite */
+#if defined(WITH_COMPOSITE)
+ #include <X11/extensions/Xcomposite.h>
+#endif
+
+/* event loop */
 #if defined(WITH_EV)
  #include <ev.h>
 #elif defined(WITH_EVENT)
@@ -21,6 +27,7 @@
 #else
  #include <sys/timerfd.h>
 #endif
+
 #include "logger.h"
 #include "theme.h"
 #include "render.h"
@@ -324,6 +331,7 @@ static char *alloc_window_name(Window win)
   creating panel window
 **************************************************************************/
 
+#ifdef WITH_COMPOSITE
 static Visual *find_argb_visual()
 {
 	XVisualInfo *xvi;
@@ -387,6 +395,7 @@ static void setup_composite()
 	X.amask = CWBackPixel | CWColormap | CWOverrideRedirect | CWBorderPixel;
 	X.depth = 32;
 }
+#endif
 
 static Window create_panel_window(uint placement, int alignment, int h, int w, int hover)
 {
@@ -1229,8 +1238,10 @@ validation:
 		LOG_ERROR("invalid theme: %s", theme);
 
 	/* setup composite if necessary */
+#ifdef WITH_COMPOSITE
 	if (P.theme->use_composite)
 		setup_composite();
+#endif
 
 	/* create panel window */
 	P.width = X.wa_w;
@@ -1244,6 +1255,7 @@ validation:
 				    P.width,
 				    P.theme->height_override);
 
+#ifdef WITH_COMPOSITE
 	if (P.theme->use_composite)
 		XCompositeRedirectSubwindows(X.display, P.win, CompositeRedirectAutomatic);
 
@@ -1251,6 +1263,7 @@ validation:
 		LOG_WARNING("tray cannot be used with composite mode enabled");
 		theme_remove_element(P.theme, 't');
 	}
+#endif
 
 	/* init tray if needed */
 	if (is_element_in_theme(P.theme, 't'))

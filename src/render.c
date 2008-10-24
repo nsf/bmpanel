@@ -25,15 +25,17 @@ static Imlib_Image bg;
 static Pixmap *rootpmap;
 static Pixmap currootpmap;
 
-/* composite */
 static Imlib_Image bbcolor;
+
+/* composite */
+#ifdef WITH_COMPOSITE
 static Imlib_Image bbalpha;
 static Pixmap pixcolor;
 static Pixmap pixalpha;
 static Picture piccolor;
 static Picture picalpha;
-
 static Picture rootpic;
+#endif
 
 static Display *bbdpy;
 static Visual *bbvis;
@@ -624,6 +626,7 @@ void init_render(struct xinfo *X, struct panel *P)
 	imlib_context_set_visual(bbvis);
 	imlib_context_set_colormap(bbcm);
 
+#ifdef WITH_COMPOSITE
 	if (P->theme->use_composite) {
 		XRenderPictFormat *fmt = XRenderFindStandardFormat(bbdpy, PictStandardARGB32);
 		bbalpha = imlib_create_image(bbwidth, bbheight);
@@ -638,7 +641,9 @@ void init_render(struct xinfo *X, struct panel *P)
 		pwin.subwindow_mode = IncludeInferiors;
 		rootpic = XRenderCreatePicture(bbdpy, bbwin, XRenderFindVisualFormat(bbdpy, bbvis), 
 				CPSubwindowMode, &pwin);
-	} else if (*rootpmap) {
+	} else 
+#endif
+	if (*rootpmap) {
 		update_bg();
 	} else {
 		set_bg();
@@ -655,6 +660,7 @@ void shutdown_render()
 	imlib_context_set_image(bbcolor);
 	imlib_free_image();
 
+#ifdef WITH_COMPOSITE
 	if (theme->use_composite) {
 		imlib_context_set_image(bbalpha);
 		imlib_free_image();
@@ -664,7 +670,9 @@ void shutdown_render()
 		XRenderFreePicture(bbdpy, picalpha);
 		XFreePixmap(bbdpy, pixcolor);
 		XFreePixmap(bbdpy, pixalpha);
-	} else if (bg) {
+	} else 
+#endif
+	if (bg) {
 		imlib_context_set_image(bg);
 		imlib_free_image();
 	}
@@ -780,6 +788,7 @@ void render_panel(struct panel *p)
 void render_present()
 {
 	update_bg();
+#ifdef WITH_COMPOSITE
 	if (theme->use_composite) {
 		/* 
 		 * Because XRender can't do directly SRCc * SRCa + DSTc * (1 - SRCa) blending,
@@ -814,7 +823,9 @@ void render_present()
 				 rootpic,
 				 0, 0, 0, 0, 0, 0, bbwidth, 
 				 bbheight);
-	} else if (*rootpmap) {
+	} else 
+#endif
+	if (*rootpmap) {
 		imlib_context_set_image(bbcolor);
 		imlib_blend_image_onto_image(bg,0,0,0,bbwidth,bbheight,0,0,bbwidth,bbheight);
 		imlib_context_set_blend(1);

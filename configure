@@ -15,6 +15,7 @@ help() {
 	echo -e "  --ugly             enable ugly verbose mode"
 	echo -e "  --with-ev          implement event loop with libev"
 	echo -e "  --with-event       implement event loop with libevent"
+	echo -e "  --with-composite   enable compositing mode (EXPERIMENTAL)"
 }
 
 TIMERFDMSG="\n***************************************************************************\nWARNING! Probably you have an old glibc library and/or an old linux kernel,\nyou need glibc >= 2.8 and the linux kernel >= 2.6.22 to compile this panel.\n***************************************************************************\n"
@@ -126,6 +127,7 @@ OPTIMIZE=0
 UGLY=0
 WITH_EV=0
 WITH_EVENT=0
+WITH_COMPOSITE=0
 
 while [ $# -gt 0 ]; do
 	case $1 in
@@ -154,6 +156,9 @@ while [ $# -gt 0 ]; do
 		--with-event)
 			WITH_EVENT=1
 			;;
+		--with-composite)
+			WITH_COMPOSITE=1
+			;;
 		*)
 			echo "unknown option $1"
 			help
@@ -176,14 +181,20 @@ else
 fi
 check_pkg_version imlib2 1.4.0
 check_pkg x11
-check_pkg xrender
-check_pkg xcomposite
+
+if [ $WITH_COMPOSITE -eq 1 ]; then
+	check_pkg xrender
+	check_pkg xcomposite
+	CFLAGS="$CFLAGS -DWITH_COMPOSITE"
+fi
+
 check_pkg fontconfig
 append_libs_and_cflags
 
 if [ $MEMDEBUG -eq 1 ]; then
 	CFLAGS="$CFLAGS -DMEMDEBUG"
 fi
+
 
 if [ $WITH_EV -eq 1 ]; then
 	CFLAGS="$CFLAGS -DWITH_EV"

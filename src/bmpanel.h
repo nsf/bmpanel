@@ -7,7 +7,12 @@
 
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
-#include <X11/extensions/Xrender.h>
+
+/* composite */
+#if defined(WITH_COMPOSITE)
+ #include <X11/extensions/Xrender.h>
+#endif
+
 #include <Imlib2.h>
 #include "common.h"
 
