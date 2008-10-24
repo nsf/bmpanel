@@ -1290,7 +1290,7 @@ static void cleanup()
 {
 	shutdown_render();
 	freeP();
-	close(timerfd);
+	/* close(timerfd); */
 	LOG_MESSAGE("cleanup");
 }
 
