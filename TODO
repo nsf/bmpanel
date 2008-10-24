@@ -21,7 +21,10 @@ src/bmpanel.c:
 	Write theme tutorial with nice images.
 
 *:
-	Xinerama support (multi-monitor configurations)
+	Xinerama support (multi-monitor configurations).
 
 *:
-	XRandR support (react on resolution changes)
+	XRandR support (react on resolution changes).
+
+src/bmpanel.c:
+	Remove #ifdefs #endifs from sources. Use separate files.
