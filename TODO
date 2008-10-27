@@ -28,3 +28,6 @@ src/bmpanel.c:
 
 src/bmpanel.c:
 	Remove #ifdefs #endifs from sources. Use separate files.
+
+src/bmpanel.c:
+	XDG conformance (themes)
