@@ -31,3 +31,6 @@ src/bmpanel.c:
 
 src/bmpanel.c:
 	XDG conformance (themes)
+
+<unknown>:
+	Drag'n'drop issue.
