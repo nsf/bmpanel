@@ -1,3 +1,3 @@
 #!/bin/sh
 ctags -R .
-vim Makefile configure src/*
+gvim Makefile configure src/*

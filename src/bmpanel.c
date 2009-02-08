@@ -52,6 +52,8 @@ static char *atom_names[] = {
 	"_NET_WM_STATE",
 	"_NET_ACTIVE_WINDOW",
 	"_NET_WM_NAME",
+	"_NET_WM_ICON_NAME",
+	"_NET_WM_VISIBLE_ICON_NAME",
 	"_NET_WORKAREA",
 	"_NET_WM_ICON",
 	"_NET_WM_VISIBLE_NAME",
@@ -314,16 +316,29 @@ static Imlib_Image get_window_icon(Window win)
 static char *alloc_window_name(Window win)
 {
 	char *ret, *name = 0;
+	name = get_prop_data(win, X.atoms[XATOM_NET_WM_VISIBLE_ICON_NAME], X.atoms[XATOM_UTF8_STRING], 0);
+	if (name) 
+		goto name_here;
+	name = get_prop_data(win, X.atoms[XATOM_NET_WM_ICON_NAME], X.atoms[XATOM_UTF8_STRING], 0);
+	if (name) 
+		goto name_here;
+	name = get_prop_data(win, XA_WM_ICON_NAME, XA_STRING, 0);
+	if (name) 
+		goto name_here;
 	name = get_prop_data(win, X.atoms[XATOM_NET_WM_VISIBLE_NAME], X.atoms[XATOM_UTF8_STRING], 0);
-	if (!name)
-		name = get_prop_data(win, X.atoms[XATOM_NET_WM_NAME], X.atoms[XATOM_UTF8_STRING], 0);
-	if (!name)
-		name = get_prop_data(win, XA_WM_NAME, XA_STRING, 0);
-	if (name) {
-		ret = xstrdup(name);
-		XFree(name);
-	} else
-		ret = xstrdup("<unknown>");
+	if (name) 
+		goto name_here;
+	name = get_prop_data(win, X.atoms[XATOM_NET_WM_NAME], X.atoms[XATOM_UTF8_STRING], 0);
+	if (name) 
+		goto name_here;
+	name = get_prop_data(win, XA_WM_NAME, XA_STRING, 0);
+	if (name) 
+		goto name_here;
+
+	return xstrdup("<unknown>");
+name_here:
+	ret = xstrdup(name);
+	XFree(name);
 	return ret;
 }
 
