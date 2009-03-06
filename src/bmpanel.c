@@ -117,8 +117,7 @@ static int X_error_handler(Display *dpy, XErrorEvent *error)
 
 static int X_io_error_handler(Display *dpy)
 {
-	LOG_WARNING("fatal error, connection to X server lost? cleaning up");
-	cleanup();
+	LOG_ERROR("fatal error, connection to X server lost? exiting...");
 	return 0;
 }
 
